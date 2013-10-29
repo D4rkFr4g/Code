@@ -256,10 +256,10 @@ struct RigidBody
 		draw(curSS, respectFrame, Matrix4());
 		
 		//2nd Method Rotations are scaled correctly Other scaling problems
-		rtf = rtf * RigTForm(Cvec3(3,0,0));
+		rtf = rtf * RigTForm(Cvec3(4,0,0));
 		Matrix4 respectFrame2 = RigTForm::makeTRmatrix(invEyeRbt);
 		draw(curSS, respectFrame2);
-		rtf = rtf * RigTForm(Cvec3(-3,0,0));
+		rtf = rtf * RigTForm(Cvec3(-4,0,0));
 	}
 
 	void draw(const ShaderState& curSS, Matrix4 respectFrame_)
@@ -267,8 +267,8 @@ struct RigidBody
 		safe_glUniform3f(curSS.h_uColor, color[0], color[1], color[2]);
 			
 		//Draw parent
-		Matrix4 respectFrame = respectFrame_ * RigTForm::makeTRmatrix(rtf) * scale;
-		Matrix4 MVM = respectFrame;
+		Matrix4 respectFrame = respectFrame_ * RigTForm::makeTRmatrix(rtf) * scale; //don't pass scale to children
+		Matrix4 MVM = respectFrame;// * scale;
 
 		if (isVisible)
 		{
@@ -291,12 +291,16 @@ struct RigidBody
 		//Draw parent
 		this;
 	
+		
 		//scale correct but not translated correctly; moving one object scale moves the rest;
 		RigTForm respectFrame = respectFrame_ * rtf;
+		//Matrix4 MVM = RigTForm::makeTRmatrix(respectFrame) * scale;
+
 		Matrix4 respectScale = respectScale_ * scale;
 		Matrix4 MVM = RigTForm::makeTRmatrix(respectFrame) * respectScale;
 		
-		/*
+
+		/*/
 		//Positioning doesn't change after scales; Moving one object doesn't translate children during setup
 		RigTForm respectFrame = respectFrame_ * rtf;
 		Matrix4 respectScale = respectScale_ * scale;
@@ -425,8 +429,8 @@ void initRobot()
 	*/
 
 	//0-Robot - Used as a container for the robot as a whole
-	RigTForm rigTemp = RigTForm(Cvec3(0,4.388,0), Quat().makeYRotation(90));
-	Matrix4 scaleTemp = Matrix4::makeScale(Cvec3(3,3,3));//1.9
+	RigTForm rigTemp = RigTForm(Cvec3(0,4.404,0), Quat());//.makeYRotation(90));
+	Matrix4 scaleTemp = Matrix4::makeScale(Cvec3(1.9,1.9,1.9));//1.9
 	
 	RigidBody *robot = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,1));
 	robot->name = "robot";
@@ -454,19 +458,19 @@ void initRobot()
 	leftArm->name = "leftArm";
 
 	//4-Right Arm
-	rigTemp = RigTForm(Cvec3(.95,0.65,0.6), Quat().makeXRotation(90));
+	rigTemp = RigTForm(Cvec3(.95,0.65,0.6), Quat().makeXRotation(0));
 	scaleTemp = Matrix4::makeScale(Cvec3(0.25,0.6,.25));
 	RigidBody *rightArm = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,1,0));
 	rightArm->name = "rightArm";
 
 	//5-Left Leg
-	rigTemp = RigTForm(Cvec3(-0.25,-0.85,0.0));
+	rigTemp = RigTForm(Cvec3(-0.25,-1.9,0.0));
 	scaleTemp = Matrix4::makeScale(Cvec3(0.25,0.8,0.25));
 	RigidBody *leftLeg = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,0));
 	leftLeg->name = "leftLeg";
 
 	//6-Right Leg
-	rigTemp = RigTForm(Cvec3(0.25,-0.85,0.0));
+	rigTemp = RigTForm(Cvec3(0.25,-1.9,0.0));
 	scaleTemp = Matrix4::makeScale(Cvec3(0.25,0.8,0.25));
 	RigidBody *rightLeg = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,0));
 	rightLeg->name = "rightLeg";
@@ -484,7 +488,7 @@ void initRobot()
 	hair->name = "hair";
 
 	//9-ScaleReference
-	rigTemp = RigTForm(Cvec3(0.0,1.26,0.0));
+	rigTemp = RigTForm(Cvec3(0.0,2.5,0.0));
 	scaleTemp = Matrix4::makeScale(Cvec3(0.1,5,0.1));
 	RigidBody *scaleReference = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(1,0,0));
 	scaleReference->name = "scaleReference";
@@ -617,15 +621,15 @@ static void motion(const int x, const int y) {
 
 	RigTForm m;
 	if (g_mouseLClickButton && !g_mouseRClickButton) { // left button down?
-		m = g_rigidBodies[0].rtf * RigTForm(Quat().makeXRotation(-dy)) * RigTForm(Quat().makeYRotation(dx)) * inv(g_rigidBodies[0].rtf);
+		m = RigTForm(Quat().makeXRotation(dy)) * RigTForm(Quat().makeYRotation(-dx));
 	}
   else if (g_mouseRClickButton && !g_mouseLClickButton) { // right button down?
-   m = g_eyeRbt * RigTForm(Cvec3(dx, 0, -dy) * 0.01) * inv(g_eyeRbt); //Update based on Eye Frame
+   m = g_eyeRbt * RigTForm(Cvec3(dx, -dy, 0) * 0.01) * inv(g_eyeRbt); //Update based on Eye Frame
 	//m = Matrix4::makeTranslation(Cvec3(dx, dy, 0) * 0.01);
   }
   else if (g_mouseMClickButton || (g_mouseLClickButton && g_mouseRClickButton)) {  // middle or (left and right) button down?
     //m = g_eyeRbt * Matrix4::makeTranslation(Cvec3(0, 0, -dy) * 0.01) * inv(g_eyeRbt); //Update based on Eye Frame
-	  m = RigTForm(Cvec3(0, -dy, 0) * 0.01); //Update based on Eye Frame
+	  m = RigTForm(Cvec3(0, 0,dy) * 0.01); //Update based on Eye Frame
   }
 
   if (g_mouseClickDown) {
