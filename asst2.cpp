@@ -72,7 +72,7 @@ static float g_frustFovY = g_frustMinFov; // FOV in y direction (updated by upda
 static const float g_frustNear = -0.1;    // near plane
 static const float g_frustFar = -50.0;    // far plane
 static const float g_groundY = 0.0;      // y coordinate of the ground
-static const float g_groundSize = 15.0;   // half the ground length
+static const float g_groundSize = 27.0;   // half the ground length
 
 static int g_windowWidth = 512;
 static int g_windowHeight = 512;
@@ -233,6 +233,14 @@ struct RigidBody
 		isVisible = true;
 	}
 
+	~RigidBody()
+	{
+		for (int i =0; i < numOfChildren; i++)
+			delete children[i];
+		delete []children;
+		delete geom;
+	}
+
 	RigidBody(RigTForm rtf_, Matrix4 scale_, RigidBody **children_, Geometry *geom_, Cvec3 color_)
 	{
 		/* PURPOSE:		 
@@ -252,36 +260,16 @@ struct RigidBody
 
 	void drawRigidBody(const ShaderState& curSS, RigTForm invEyeRbt)
 	{
-		RigTForm respectFrame = invEyeRbt;// * rtf;
+		RigTForm respectFrame = invEyeRbt;
 		draw(curSS, respectFrame, Matrix4());
 		
+		/*
 		//2nd Method Rotations are scaled correctly Other scaling problems
 		rtf = rtf * RigTForm(Cvec3(4,0,0));
-		Matrix4 respectFrame2 = RigTForm::makeTRmatrix(invEyeRbt);
+		Matrix4 respectFrame2 = RigTForm::makeTRmatrix(invEyeRbt, Matrix4());
 		draw(curSS, respectFrame2);
 		rtf = rtf * RigTForm(Cvec3(-4,0,0));
-	}
-
-	void draw(const ShaderState& curSS, Matrix4 respectFrame_)
-	{
-		safe_glUniform3f(curSS.h_uColor, color[0], color[1], color[2]);
-			
-		//Draw parent
-		Matrix4 respectFrame = respectFrame_ * RigTForm::makeTRmatrix(rtf) * scale; //don't pass scale to children
-		Matrix4 MVM = respectFrame;// * scale;
-
-		if (isVisible)
-		{
-			if (geom != NULL)
-				geom->draw(curSS, MVM);
-		}
-
-		//Draw Children
-		for (int i = 0; i < numOfChildren; i++)
-		{
-			children[i]->draw(curSS, respectFrame);
-		}
-		
+		*/
 	}
 
 	void draw(const ShaderState& curSS, RigTForm respectFrame_, Matrix4 respectScale_)
@@ -291,15 +279,14 @@ struct RigidBody
 		//Draw parent
 		this;
 	
-		
 		//scale correct but not translated correctly; moving one object scale moves the rest;
 		RigTForm respectFrame = respectFrame_ * rtf;
+		Matrix4 respectScale = respectScale_ * scale;
+
 		//Matrix4 MVM = RigTForm::makeTRmatrix(respectFrame) * scale;
 
-		Matrix4 respectScale = respectScale_ * scale;
-		Matrix4 MVM = RigTForm::makeTRmatrix(respectFrame) * respectScale;
+		Matrix4 MVM = RigTForm::makeTRmatrix(respectFrame, respectScale);
 		
-
 		/*/
 		//Positioning doesn't change after scales; Moving one object doesn't translate children during setup
 		RigTForm respectFrame = respectFrame_ * rtf;
@@ -321,6 +308,28 @@ struct RigidBody
 			children[i]->draw(curSS, respectFrame, respectScale);
 		}
 		
+	}
+
+	void draw(const ShaderState& curSS, Matrix4 respectFrame_)
+	{
+		safe_glUniform3f(curSS.h_uColor, color[0], color[1], color[2]);
+			
+		//Draw parent
+		Matrix4 respectFrame = respectFrame_ * RigTForm::makeTRmatrix(rtf, scale);
+		//Matrix4 respectFrame = RigTForm::makeTRmatrix(rtf, scale) * respectFrame_;
+		Matrix4 MVM = respectFrame;
+
+		if (isVisible)
+		{
+			if (geom != NULL)
+				geom->draw(curSS, MVM);
+		}
+
+		//Draw Children
+		for (int i = 0; i < numOfChildren; i++)
+		{
+			children[i]->draw(curSS, respectFrame);
+		}
 	}
 };
 /*-----------------------------------------------*/
@@ -373,13 +382,29 @@ static Matrix4 lookAt(Cvec3f eyePosition, Cvec3f lookAtPosition, Cvec3f upVector
 	return Matrix4(m, true);
 }
 /*-----------------------------------------------*/
+static float lookAt(Cvec3f eyePosition, Cvec3f upPosition)
+{
+	float temp = dot(eyePosition, upPosition);
+	float eyeNorm = norm(eyePosition);
+	float atNorm = norm(upPosition);
+	temp = (temp / (eyeNorm * atNorm));
+	temp = acos(temp) * 180;
+	temp /= M_PI;
+
+	//cout << "angle = " << temp << "\n";
+	//Matrix4::print(Matrix4::makeXRotation(temp));
+
+	return -(90 - temp);
+}
+/*-----------------------------------------------*/
 static void initCamera()
 {
 	Cvec3f eye = Cvec3f(0.0, 3.0, 10.0);
 	Cvec3f at = Cvec3f(0.0, 0.0, 0.0);
 	Cvec3f up = Cvec3f(0.0,1.0,0.0);
 	//g_skyRbt = lookAt(eye, at, up); // Default camera
-	//g_eyeRbt = g_skyRbt;
+	g_skyRbt.setRotation(Quat().makeXRotation(lookAt(eye,up)));
+	g_eyeRbt = g_skyRbt;
 }
 /*-----------------------------------------------*/
 static void initGround() {
@@ -458,20 +483,34 @@ void initRobot()
 	leftArm->name = "leftArm";
 
 	//4-Right Arm
-	rigTemp = RigTForm(Cvec3(.95,0.65,0.6), Quat().makeXRotation(0));
+	rigTemp = RigTForm(Cvec3(.95,0.65,0.6), Quat().makeXRotation(90));
 	scaleTemp = Matrix4::makeScale(Cvec3(0.25,0.6,.25));
 	RigidBody *rightArm = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,1,0));
 	rightArm->name = "rightArm";
 
+	// Left Hip Joint
+	rigTemp = RigTForm(Cvec3(-0.25,-1.0,0.0));
+	scaleTemp = Matrix4::makeScale(Cvec3(0.1,0.1,0.1));
+	RigidBody *leftHipJoint = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,1));
+	leftHipJoint->name = "leftHipJoint";
+	//leftHipJoint->isVisible = false;
+
 	//5-Left Leg
-	rigTemp = RigTForm(Cvec3(-0.25,-1.9,0.0));
-	scaleTemp = Matrix4::makeScale(Cvec3(0.25,0.8,0.25));
+	rigTemp = RigTForm(Cvec3(0.0,-1.0,0.0));
+	scaleTemp = Matrix4::makeScale(Cvec3(2.5,8,2.5));
 	RigidBody *leftLeg = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,0));
 	leftLeg->name = "leftLeg";
 
+	// Right Hip Joint
+	rigTemp = RigTForm(Cvec3(0.25,-1.0,0.0),Quat().makeXRotation(-25));
+	scaleTemp = Matrix4::makeScale(Cvec3(0.1,0.1,0.1));
+	RigidBody *rightHipJoint = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,1));
+	rightHipJoint->name = "rightHipJoint";
+	//rightHipJoint->isVisible = false;
+
 	//6-Right Leg
-	rigTemp = RigTForm(Cvec3(0.25,-1.9,0.0));
-	scaleTemp = Matrix4::makeScale(Cvec3(0.25,0.8,0.25));
+	rigTemp = RigTForm(Cvec3(0.0,-1.0,0.0));
+	scaleTemp = Matrix4::makeScale(Cvec3(2.5,8,2.5));
 	RigidBody *rightLeg = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,0));
 	rightLeg->name = "rightLeg";
 
@@ -492,6 +531,7 @@ void initRobot()
 	scaleTemp = Matrix4::makeScale(Cvec3(0.1,5,0.1));
 	RigidBody *scaleReference = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(1,0,0));
 	scaleReference->name = "scaleReference";
+	scaleReference->isVisible = false;
 
 	//10-Cylinder
 	//rigTemp = RigTForm(Cvec3(-2.0,3.0,0.0));
@@ -503,6 +543,8 @@ void initRobot()
 	robot->numOfChildren = 1;
 	head->numOfChildren = 3;
 	body->numOfChildren = 4;
+	leftHipJoint->numOfChildren = 1;
+	rightHipJoint->numOfChildren = 1;
 
 	robot->children = new RigidBody*[robot->numOfChildren];
 	robot->children[0] = head;
@@ -515,9 +557,15 @@ void initRobot()
 	body->children = new RigidBody*[body->numOfChildren];
 	body->children[0]  = leftArm;
 	body->children[1]  = rightArm;
-	body->children[2]  = leftLeg;
-	body->children[3]  = rightLeg;
+	body->children[2]  = leftHipJoint;
+	body->children[3]  = rightHipJoint;
 	
+	leftHipJoint->children = new RigidBody*[leftHipJoint->numOfChildren];
+	leftHipJoint->children[0]  = leftLeg;
+	
+	rightHipJoint->children = new RigidBody*[rightHipJoint->numOfChildren];
+	rightHipJoint->children[0]  = rightLeg;
+
 	//Add to global RigidBody array
 	g_rigidBodies[0] = *robot;
 	g_rigidBodies[1] = *scaleReference;
@@ -584,7 +632,7 @@ static void drawStuff()
 	// ===========
 	//
 	const RigTForm groundRbt = RigTForm();  // identity
-	Matrix4 MVM = RigTForm::makeTRmatrix(invEyeRbt * groundRbt);
+	Matrix4 MVM = RigTForm::makeTRmatrix(invEyeRbt * groundRbt, Matrix4());
 	Matrix4 NMVM = normalMatrix(MVM);
 	sendModelViewNormalMatrix(curSS, MVM, NMVM);
 	safe_glUniform3f(curSS.h_uColor, 0.1, 0.95, 0.1); // set color
@@ -621,10 +669,11 @@ static void motion(const int x, const int y) {
 
 	RigTForm m;
 	if (g_mouseLClickButton && !g_mouseRClickButton) { // left button down?
-		m = RigTForm(Quat().makeXRotation(dy)) * RigTForm(Quat().makeYRotation(-dx));
+		m = g_rigidBodies[0].rtf * RigTForm(Quat().makeXRotation(dy)) * RigTForm(Quat().makeYRotation(-dx)) * inv(g_rigidBodies[0].rtf);
 	}
-  else if (g_mouseRClickButton && !g_mouseLClickButton) { // right button down?
-   m = g_eyeRbt * RigTForm(Cvec3(dx, -dy, 0) * 0.01) * inv(g_eyeRbt); //Update based on Eye Frame
+  else if (g_mouseRClickButton && !g_mouseLClickButton) 
+  { // right button down?
+		m = g_eyeRbt * RigTForm(Cvec3(dx, dy, 0) * 0.01) * inv(g_eyeRbt); //Update based on Eye Frame
 	//m = Matrix4::makeTranslation(Cvec3(dx, dy, 0) * 0.01);
   }
   else if (g_mouseMClickButton || (g_mouseLClickButton && g_mouseRClickButton)) {  // middle or (left and right) button down?
@@ -634,7 +683,7 @@ static void motion(const int x, const int y) {
 
   if (g_mouseClickDown) {
 //	  g_objectRbt[0] *= m; // Simply right-multiply is WRONG
-	  g_rigidBodies[0].rtf = g_rigidBodies[0].rtf * m; //Update Robot Container
+	  g_rigidBodies[0].rtf = m * g_rigidBodies[0].rtf; //Update Robot Container
 	  glutPostRedisplay(); // we always redraw if we changed the scene
   }
 
@@ -820,6 +869,40 @@ static void keyboard(const unsigned char key, const int x, const int y)
 		g_rigidBodies[0].setTransRbt(Matrix4::makeTranslation(Cvec3(-1,0,0)));
 		*/
 	}
+	else if (key == ',')
+	{
+		g_eyeRbt.setRotation(g_eyeRbt.getRotation() * Quat().makeZRotation(15));
+	}
+	else if (key == '.')
+	{
+		g_eyeRbt.setRotation(g_eyeRbt.getRotation() * Quat().makeZRotation(-15));
+	}
+	else if (key == '-')
+	{
+		float max = 20;
+		Cvec3 cameraTrans = g_eyeRbt.getTranslation();
+
+		g_eyeRbt.setTranslation(cameraTrans + Cvec3(0,0,1));
+		
+		if (cameraTrans[2] >= max)
+			g_eyeRbt.setTranslation(Cvec3(cameraTrans[0], cameraTrans[1], max));
+
+		//cout << "( " << g_eyeRbt.getTranslation()[0] << ", " << g_eyeRbt.getTranslation()[1] << ", " << g_eyeRbt.getTranslation()[2] << "\n";
+
+	}
+	else if (key == '=')
+	{
+		float min = 5;
+		Cvec3 cameraTrans = g_eyeRbt.getTranslation();
+
+		g_eyeRbt.setTranslation(cameraTrans - Cvec3(0,0,1));
+	
+		if (cameraTrans[2] <= min)
+			g_eyeRbt.setTranslation(Cvec3(cameraTrans[0], cameraTrans[1], min));
+
+		//cout << "( " << g_eyeRbt.getTranslation()[0] << ", " << g_eyeRbt.getTranslation()[1] << ", " << g_eyeRbt.getTranslation()[2] << "\n";
+	}
+
 	glutPostRedisplay();
 }
 /*-----------------------------------------------*/

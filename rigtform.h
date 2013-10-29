@@ -65,11 +65,12 @@ public:
 	  return RigTForm(t_ + Cvec3(r_ * Cvec4(a.t_,0)),r_ * a.r_);
   }
 
-  static Matrix4 makeTRmatrix(const RigTForm& rbt)
+  static Matrix4 makeTRmatrix(const RigTForm& rbt, Matrix4 s)
 	{
 		Matrix4 t = Matrix4::makeTranslation(rbt.getTranslation());
 		Matrix4 r = quatToMatrix(rbt.getRotation());
-		return t * r;
+		
+		return t * r * s;
 	}
 };
 
