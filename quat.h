@@ -135,9 +135,7 @@ public:
 	  
 		float theta = 0;
 		Cvec3 c = Cvec3(q[1],q[2],q[3]);
-		//Cvec3 zeroVec = Cvec3(0,0,0);
-		//if  (c != zeroVec)
-		axis = normalize(c);
+		axis = normalize(c); //Adjusted normalize function so a zero vector is normalized as zero vector
 		float cNorm = norm(c);
 		theta = cos(atan2(norm(c),q[0]));
 
