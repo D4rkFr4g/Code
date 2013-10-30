@@ -40,6 +40,9 @@
 #include "rigtform.h"
 
 #define M_PI 3.1415926535897932384626433832795;
+#define I_POWER 0;
+#define I_SLERP 1;
+#define I_LERP 2;
 
 
 using namespace std;      // for string, vector, iostream, and other standard C++ stuff
@@ -81,6 +84,8 @@ static bool g_mouseLClickButton, g_mouseRClickButton, g_mouseMClickButton;
 static int g_mouseClickX, g_mouseClickY; // coordinates for mouse click event
 static int g_activeShader = 0;
 static const int g_numOfObjects = 2; //Number of cube objects to be drawn
+static float g_framesPerSecond = 32;
+static int g_interpolationType  = I_SLERP;
 
 struct ShaderState {
   GlProgram program;
@@ -341,9 +346,6 @@ static shared_ptr<Geometry> g_ground, g_cube, g_cylinder;
 static const Cvec3 g_light1(2.0, 3.0, 14.0), g_light2(-2, -3.0, -5.0);  // define two lights positions in world space
 static RigTForm g_skyRbt = RigTForm(Cvec3(0.0, 3, 10.0)); // Default camera
 static RigTForm g_eyeRbt = g_skyRbt; //Set the g_eyeRbt frame to be default as the sky frame
-//static Matrix4 g_objectRbt[g_numOfObjects];// = {Matrix4::makeTranslation(Cvec3(0,0,0))};  // currently only 1 obj is defined
-//Different color for each body part for debug.
-//static Cvec3f g_objectColors[g_numOfObjects] = {Cvec3f(0,0,0), Cvec3f(0, 1, 0), Cvec3f(0,0,0), Cvec3f(1,1,1), Cvec3f(0,1,0), Cvec3f(0,0,0), Cvec3f(0,0,0), Cvec3f(.5,.5,.5), Cvec3f(0,0,0), Cvec3f(1,0,0)}; // Array of colors to fill cubes with
 static RigidBody g_rigidBodies[g_numOfObjects]; // Array that holds each cube(body part) of the robot
 
 ///////////////// END OF G L O B A L S //////////////////////////////////////////////////
@@ -460,9 +462,6 @@ void initRobot()
 	RigidBody *robot = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,1));
 	robot->name = "robot";
 	robot->isVisible = false;
-
-	//torso->num_children = 4;
-   //torso->children = new RigidBody*[torso->num_children];
 
 	//1-Head
 	rigTemp = RigTForm(Cvec3(0.0,0.0,0.0));//1.85
@@ -707,40 +706,6 @@ static void mouse(const int button, const int state, const int x, const int y) {
   g_mouseClickDown = g_mouseLClickButton || g_mouseRClickButton || g_mouseMClickButton;
 }
 /*-----------------------------------------------*/
-static void keyUp (const unsigned char key, const int x, const int y)
-{
-	/* PURPOSE:		An OpenGL callback when a keyboard key is released 
-		RECEIVES:	unsigned char key - Key released
-						int x - location of the mouse x_position when released
-						int y - location of the mouse y_position when released
-	*/
-
-	if (key == '1' || key == '2' || key == '3')
-	{
-		//Reset to the default Eye view
-		g_eyeRbt = g_skyRbt;
-	}
-	//Reset Scaling or Translation of Robot back to original from hop or scale
-	if (key == 's' || key == 'h' || key == 'g')
-	{
-		//g_rigidBodies[0].originalPosition();
-	}
-	//Reset Torso back to original rotation from Twist
-	if (key == 't' || key == 'y')
-	{
-		//g_rigidBodies[2].originalPosition();
-	}
-	//Reset Robot, arms, and legs back to original position from Jumping Jack
-	if (key == 'j')
-	{
-		//g_rigidBodies[0].originalPosition();
-		//for (int i = 3; i < g_numOfObjects; i++)
-			//g_rigidBodies[i].originalPosition();
-	}
-
-	glutPostRedisplay();
-}
-/*-----------------------------------------------*/
 static void keyboard(const unsigned char key, const int x, const int y) 
 {
 	/* PURPOSE:		OpenGL Callback for Keyboard presses 
@@ -774,100 +739,60 @@ static void keyboard(const unsigned char key, const int x, const int y)
 
 	if (key == '1')
 	{
-		/*
-		//Set eye view to look down at Jumping Jack from above
-		g_eyeRbt = Matrix4::makeTranslation(Cvec3(0.0, 10.0, 0.0));
-		g_eyeRbt = g_eyeRbt * Matrix4::makeXRotation(-90);
-		*/
+		g_framesPerSecond = 32;
 	}
 	else if (key == '2')
 	{
-		/*
-		//Set Eye view to look at Jumping Jacks Right Side
-		g_eyeRbt = Matrix4::makeTranslation(Cvec3(10.0, 2.5, 0.0));
-		g_eyeRbt = g_eyeRbt * Matrix4::makeYRotation(90);
-		*/
+		g_framesPerSecond = 16;
 	}
 	else if (key == '3')
 	{
-		/*
-		//Set Eye view to look at Jumping Jacks Left Side
-		g_eyeRbt = Matrix4::makeTranslation(Cvec3(-10.0, 2.5, 0.0));
-		g_eyeRbt = g_eyeRbt * Matrix4::makeYRotation(-90);
-		*/
+		g_framesPerSecond = 8;
+	}
+	else if (key == '3')
+	{
+		g_framesPerSecond = 4;
+	}
+	else if (key == '4')
+	{
+		g_framesPerSecond = 2;
+	}
+	else if (key == '5')
+	{
+		g_framesPerSecond = 1;
+	}
+	else if (key == '6')
+	{
+		g_framesPerSecond = 0.5;
+	}
+	else if (key == '7')
+	{
+		g_framesPerSecond = 0.25;
+	}
+	else if (key == '8')
+	{
+		g_framesPerSecond = 0.125;
+	}
+	else if (key == '9')
+	{
+		g_framesPerSecond = 0.0625;
 	}
 	
-	if (key == 'j')
+	if (key == 'p')
 	{
-		/*
-		//Jumping jack with arms and legs outstretched
-
-		//Robot
-		g_rigidBodies[0].resetTransRbt();
-		g_rigidBodies[0].setTransRbt(Matrix4::makeTranslation(Cvec3(0,-0.2,0)));
-		//Left Arm
-		g_rigidBodies[3].resetRotateRbt();
-		g_rigidBodies[3].setRotateRbt(Matrix4::makeZRotation(-135));
-		g_rigidBodies[3].resetTransRbt();
-		g_rigidBodies[3].setTransRbt(Matrix4::makeTranslation(Cvec3(-0.75,0.5,0)));
-		//Right Arm
-		g_rigidBodies[4].resetRotateRbt();
-		g_rigidBodies[4].setRotateRbt(Matrix4::makeZRotation(135));
-		g_rigidBodies[4].resetTransRbt();
-		g_rigidBodies[4].setTransRbt(Matrix4::makeTranslation(Cvec3(0.75,0.5,0)));
-		//Left Leg
-		g_rigidBodies[5].resetRotateRbt();
-		g_rigidBodies[5].setRotateRbt(Matrix4::makeZRotation(-45));
-		g_rigidBodies[5].resetTransRbt();
-		Matrix4 lArmTransRbt = g_rigidBodies[5].getTransRbt();
-		g_rigidBodies[5].setTransRbt(lArmTransRbt * Matrix4::makeTranslation(Cvec3(-0.2,0.1,0)));
-		//Right Leg
-		g_rigidBodies[6].resetRotateRbt();
-		g_rigidBodies[6].setRotateRbt(Matrix4::makeZRotation(45));
-		g_rigidBodies[6].resetTransRbt();
-		Matrix4 rArmTransRbt = g_rigidBodies[6].getTransRbt();
-		g_rigidBodies[6].setTransRbt(rArmTransRbt * Matrix4::makeTranslation(Cvec3(0.2,0.1,0)));
-		*/
-	}
-	else if (key == 't')
-	{
-		/*
-		//Torso twist by 45 degrees 
-		g_rigidBodies[2].resetRotateRbt();
-		g_rigidBodies[2].setRotateRbt(Matrix4::makeYRotation(45));
-		*/
-	}
-	else if (key == 'y')
-	{
-		/*
-		//Torso twist by -45 degrees 
-		g_rigidBodies[2].resetRotateRbt();
-		g_rigidBodies[2].setRotateRbt(Matrix4::makeYRotation(-45));
-		*/
+		g_interpolationType = I_POWER;
 	}
 	else if (key == 's')
 	{
-		/*
-		//Supersize to twice the normal size
-		g_rigidBodies[0].resetScaleRbt();
-		g_rigidBodies[0].setScaleRbt(Matrix4::makeScale(Cvec3(2,2,2)));
-		*/
+		g_interpolationType = I_SLERP;
 	}
-	else if (key == 'h')
+	else if (key == 'l')
 	{
-		/*
-		//Hop a fixed displacement to the right side
-		g_rigidBodies[0].resetTransRbt();
-		g_rigidBodies[0].setTransRbt(Matrix4::makeTranslation(Cvec3(1,0,0)));
-		*/
+		g_interpolationType = I_LERP;
 	}
-	else if (key == 'g')
+	else if (key == 'r')
 	{
-		/*
-		//Hop a fixed displacement to the left side
-		g_rigidBodies[0].resetTransRbt();
-		g_rigidBodies[0].setTransRbt(Matrix4::makeTranslation(Cvec3(-1,0,0)));
-		*/
+
 	}
 	else if (key == ',')
 	{
