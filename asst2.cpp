@@ -726,10 +726,11 @@ static void animateRobot(int value)
 		animationPart++;
 
 		//Rotate
-		if (animationPart == 1)
+		if (animationPart == 1 || animationPart == 3 || animationPart == 5 || animationPart == 7)
 		{
 			start = end;
-			end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
+			//end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
+			end = RigTForm(Quat().makeYRotation(90)) * start;
 			totalTime = stepsPerSecond * 1 * 1000;
 		}
 		//Walk (-)z 10 paces
@@ -739,13 +740,6 @@ static void animateRobot(int value)
 			end = RigTForm(Cvec3(0,0,-10)) * start;
 			totalTime = stepsPerSecond * 10 * 1000;
 		}
-		//Rotate
-		else if (animationPart == 3)
-		{
-			start = end;
-			end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation());
-			totalTime = stepsPerSecond * 1 * 1000;
-		}
 		//Walk (-)x 5 paces
 		else if (animationPart == 4)
 		{
@@ -753,26 +747,12 @@ static void animateRobot(int value)
 			end = RigTForm(Cvec3(-5,0,0)) * start;
 			totalTime = stepsPerSecond * 5 * 1000;
 		}
-		//Rotate
-		else if (animationPart == 5)
-		{
-			start = end;
-			end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation());
-			totalTime = stepsPerSecond * 1 * 1000;
-		}
 		//Walk (+)z 10 paces
 		else if (animationPart == 6)
 		{
 			start = end;
 			end = RigTForm(Cvec3(0,0,10)) * start;
 			totalTime = stepsPerSecond * 10 * 1000;
-		}
-		//Rotate
-		else if (animationPart == 7)
-		{
-			start = end;
-			end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation());
-			totalTime = stepsPerSecond * 1 * 1000;
 		}
 		else
 		{
