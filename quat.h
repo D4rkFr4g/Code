@@ -139,9 +139,11 @@ public:
 		float cNorm = norm(c);
 		//theta = cos(atan2(norm(c),q[0])); //Not sure if cos() is necessary
 		theta = atan2(norm(c),q[0]);
-
+		
 		Quat currentQ = Quat((cos(a * theta) / 2.0), axis * (sin(a * theta) / 2.0));
-
+		//Verify angle being sent
+		//cout << "currentAngle = " << atan2(norm(Cvec3(currentQ[1],currentQ[2],currentQ[3])),currentQ[0]) * (180/CS175_PI) << "\n";
+		
 		return currentQ;
   }
 

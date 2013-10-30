@@ -791,7 +791,7 @@ static void animateRobot(int value)
 
 				//g_rigidBodies[0].rtf.setRotation(endQ); //Works to show end rotation points are correct
 				//g_rigidBodies[0].rtf.setRotation(currentQ);  //Rotating as if always starting from original rotate
-				g_rigidBodies[0].rtf.setRotation(startQ * currentQ); // Apply rotation with respect to starting Position
+				g_rigidBodies[0].rtf.setRotation(currentQ * startQ); // Apply rotation with respect to starting Position //Double rotates
 				cout << "[" << currentQ[0] << ", " << currentQ[1] << ", " << currentQ[2] << ", " << currentQ[3] << "]\n";
 			}
 		}
