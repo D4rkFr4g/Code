@@ -137,7 +137,8 @@ public:
 		Cvec3 c = Cvec3(q[1],q[2],q[3]);
 		axis = normalize(c); //Adjusted normalize function so a zero vector is normalized as zero vector
 		float cNorm = norm(c);
-		theta = cos(atan2(norm(c),q[0]));
+		//theta = cos(atan2(norm(c),q[0])); //Not sure if cos() is necessary
+		theta = atan2(norm(c),q[0]);
 
 		Quat currentQ = Quat((cos(a * theta) / 2.0), axis * (sin(a * theta) / 2.0));
 
