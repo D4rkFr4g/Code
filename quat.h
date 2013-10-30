@@ -17,6 +17,7 @@ Quat normalize(const Quat& q);
 Matrix4 quatToMatrix(const Quat& q);
 Quat pow(const Quat& q, float a);
 Quat negate(const Quat& q);
+double getAngle();
 
 class Quat {
   Cvec4 q_;  // layout is: q_[0]==w, q_[1]==x, q_[2]==y, q_[3]==z
@@ -122,8 +123,8 @@ public:
     return r;
   }
 
-  static Quat pow(const Quat& q_, float a)
-  {
+	static Quat pow(const Quat& q_, float a)
+	{
 		Quat q;
 		Cvec3 axis;
 
@@ -146,19 +147,18 @@ public:
 		cout << "currentAngle = " << currentQ.getAngle();
 		
 		return currentQ;
-  }
+	}
 
-  static Quat negate(const Quat& q)
-  {
-	  return Quat(-q[0],-q[1],-q[2],-q[3]);
-  }
-
+	static Quat negate(const Quat& q)
+	{
+		return Quat(-q[0],-q[1],-q[2],-q[3]);
+	}
+   
+	static double getAngle()
+	{
+		return atan2(norm(Cvec3(q_[1],q_[2],q_[3])),q_[0]) * (180/CS175_PI);	
+	}
 };
-
-inline double getAngle()
-{
-	return atan2(norm(Cvec3(q_[1],q_[2],q_[3])),q_[0]) * (180/CS175_PI);	
-}
 
 inline double dot(const Quat& q, const Quat& p) {
   double s = 0.0;
