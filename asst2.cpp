@@ -729,7 +729,8 @@ static void animateRobot(int value)
 		if (animationPart == 1 || animationPart == 3 || animationPart == 5 || animationPart == 7)
 		{
 			start = end;
-			end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
+			end = RigTForm(start.getTranslation(), start.getRotation() * Quat().makeYRotation(90));
+			//end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
 			//end = RigTForm(Quat().makeYRotation(90)) * start;
 			totalTime = stepsPerSecond * 1 * 1000;
 		}
@@ -789,8 +790,8 @@ static void animateRobot(int value)
 				Quat currentQ = Quat::pow(endQ, alpha); // Calculate this frames rotation Quat
 
 				//g_rigidBodies[0].rtf.setRotation(endQ); //Works to show end rotation points are correct
-				//g_rigidBodies[0].rtf.setRotation(currentQ); // Rotates incorrectly on one diagonal
-				g_rigidBodies[0].rtf.setRotation(startQ * currentQ); // Apply rotation with respect to starting Position
+				g_rigidBodies[0].rtf.setRotation(currentQ);  //Rotating as if always starting from original rotate
+				//g_rigidBodies[0].rtf.setRotation(startQ * currentQ); // Apply rotation with respect to starting Position
 				cout << "[" << currentQ[0] << ", " << currentQ[1] << ", " << currentQ[2] << ", " << currentQ[3] << "]\n";
 			}
 		}
