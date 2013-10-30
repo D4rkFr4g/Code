@@ -729,8 +729,8 @@ static void animateRobot(int value)
 		if (animationPart == 1 || animationPart == 3 || animationPart == 5 || animationPart == 7)
 		{
 			start = end;
-			//end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
-			end = RigTForm(Quat().makeYRotation(90)) * start;
+			end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
+			//end = RigTForm(Quat().makeYRotation(90)) * start;
 			totalTime = stepsPerSecond * 1 * 1000;
 		}
 		//Walk (-)z 10 paces
