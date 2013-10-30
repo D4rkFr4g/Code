@@ -789,8 +789,8 @@ static void animateRobot(int value)
 				Quat currentQ = Quat::pow(endQ, alpha); // Calculate this frames rotation Quat
 
 				//g_rigidBodies[0].rtf.setRotation(endQ); //Works to show end rotation points are correct
-				g_rigidBodies[0].rtf.setRotation(currentQ); // Rotates incorrectly on one diagonal
-				//g_rigidBodies[0].rtf.setRotation(startQ * currentQ); // Apply rotation with respect to starting Position
+				//g_rigidBodies[0].rtf.setRotation(currentQ); // Rotates incorrectly on one diagonal
+				g_rigidBodies[0].rtf.setRotation(startQ * currentQ); // Apply rotation with respect to starting Position
 				cout << "[" << currentQ[0] << ", " << currentQ[1] << ", " << currentQ[2] << ", " << currentQ[3] << "]\n";
 			}
 		}
