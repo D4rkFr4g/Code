@@ -704,6 +704,83 @@ static void timer(int value)
 	glutTimerFunc(msecs, timer, 0);
 }
 /*-----------------------------------------------*/
+static void animateRobot(int value)
+{
+	float msecsPerFrame = 1/(g_framesPerSecond / 1000);
+	static int animationPart = 0;
+	static bool isAnimating = true;
+
+	//Initial walk to right 5secs (+)x-axis
+	static RigTForm start = g_rigidBodies[0].rtf;
+	static RigTForm end = start * RigTForm(Cvec3(5,0,0));
+	static float totalTime = 5 * 1000;
+	static float elapsedTime = 0;
+	
+	
+
+	//Handles which part of animation is currently running
+	if (elapsedTime >= totalTime)
+	{
+		animationPart++;
+
+		//Walk (-)z 10 paces
+		if (animationPart == 1)
+		{
+			start = end;
+			end = start * RigTForm(Cvec3(0,0,-10));
+			totalTime = 10 * 1000;
+		}
+		//Walk (-)x 5 paces
+		else if (animationPart == 2)
+		{
+			start = end;
+			end = start * RigTForm(Cvec3(-5,0,0));
+			totalTime = 5 * 1000;
+		}
+		//Walk (+)z 10 paces
+		else if (animationPart == 3)
+		{
+			start = end;
+			end = start * RigTForm(Cvec3(0,0,10));
+			totalTime = 10 * 1000;
+		}
+		else
+		{
+			isAnimating = false;
+		}
+
+		elapsedTime = 0;
+	}
+
+	if (isAnimating)
+	{
+
+		float alpha = elapsedTime / totalTime;
+
+		//Handle Translation Interpolation
+		Cvec3 startVec = start.getTranslation();
+		Cvec3 temp = end.getTranslation() - startVec; 
+		g_rigidBodies[0].rtf.setTranslation(startVec + (temp * alpha));
+
+
+		//Handle Rotational Interpolation
+		if (g_interpolationType == I_POWER)
+		{
+		}
+		else if (g_interpolationType == I_SLERP)
+		{
+		}
+		else if (g_interpolationType == I_LERP)
+		{
+		}
+
+		elapsedTime += msecsPerFrame;
+		glutPostRedisplay();
+	
+			glutTimerFunc(msecsPerFrame, animateRobot, 0);
+	}
+}
+/*-----------------------------------------------*/
 static void mouse(const int button, const int state, const int x, const int y) {
   g_mouseClickX = x;
   g_mouseClickY = g_windowHeight - y - 1;  // conversion from GLUT window-coordinate-system to OpenGL window-coordinate-system
@@ -807,7 +884,7 @@ static void keyboard(const unsigned char key, const int x, const int y)
 	else if (key == 'a')
 	{
 		float msecs =  g_framesPerSecond / 1000;
-		glutTimerFunc(msecs, timer, 0);
+		glutTimerFunc(msecs, animateRobot, 0);
 	}
 	else if (key == ',')
 	{
