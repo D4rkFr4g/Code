@@ -792,7 +792,7 @@ static void animateRobot(int value)
 	else
 	{
 		isAnimating =  true;
-		cout << "Stopwatch = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
+		//cout << "Stopwatch = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
 		stopwatch = 0;
 	}
 }
