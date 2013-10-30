@@ -454,7 +454,7 @@ void initRobot()
 	*/
 
 	//0-Robot - Used as a container for the robot as a whole
-	RigTForm rigTemp = RigTForm(Cvec3(0,4.404,0), Quat());//.makeYRotation(90));
+	RigTForm rigTemp = RigTForm(Cvec3(0,4.404,0), Quat().makeYRotation(90));
 	Matrix4 scaleTemp = Matrix4::makeScale(Cvec3(1.9,1.9,1.9));//1.9
 	
 	RigidBody *robot = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,1));
@@ -706,14 +706,16 @@ static void timer(int value)
 /*-----------------------------------------------*/
 static void animateRobot(int value)
 {
+	static float stopwatch = 0;
 	float msecsPerFrame = 1/(g_framesPerSecond / 1000);
 	static int animationPart = 0;
 	static bool isAnimating = true;
+	static float stepsPerSecond = 2.0/3.0;
 
 	//Initial walk to right 5secs (+)x-axis
 	static RigTForm start = g_rigidBodies[0].rtf;
-	static RigTForm end = start * RigTForm(Cvec3(5,0,0));
-	static float totalTime = 5 * 1000;
+	static RigTForm end = RigTForm(Cvec3(5,0,0)) * start;
+	static float totalTime = stepsPerSecond * 5 * 1000;
 	static float elapsedTime = 0;
 	
 	
@@ -727,26 +729,32 @@ static void animateRobot(int value)
 		if (animationPart == 1)
 		{
 			start = end;
-			end = start * RigTForm(Cvec3(0,0,-10));
-			totalTime = 10 * 1000;
+			end = RigTForm(Cvec3(0,0,-10)) * start;
+			totalTime = stepsPerSecond * 10 * 1000;
 		}
 		//Walk (-)x 5 paces
 		else if (animationPart == 2)
 		{
 			start = end;
-			end = start * RigTForm(Cvec3(-5,0,0));
-			totalTime = 5 * 1000;
+			end = RigTForm(Cvec3(-5,0,0)) * start;
+			totalTime = stepsPerSecond * 5 * 1000;
 		}
 		//Walk (+)z 10 paces
 		else if (animationPart == 3)
 		{
 			start = end;
-			end = start * RigTForm(Cvec3(0,0,10));
-			totalTime = 10 * 1000;
+			end = RigTForm(Cvec3(0,0,10)) * start;
+			totalTime = stepsPerSecond * 10 * 1000;
 		}
 		else
 		{
 			isAnimating = false;
+
+			//Reset values to default
+			animationPart = 0;
+			start = g_rigidBodies[0].rtf;
+			end = RigTForm(Cvec3(5,0,0)) * start;
+			totalTime = stepsPerSecond * 5 * 1000;
 		}
 
 		elapsedTime = 0;
@@ -762,7 +770,6 @@ static void animateRobot(int value)
 		Cvec3 temp = end.getTranslation() - startVec; 
 		g_rigidBodies[0].rtf.setTranslation(startVec + (temp * alpha));
 
-
 		//Handle Rotational Interpolation
 		if (g_interpolationType == I_POWER)
 		{
@@ -777,7 +784,16 @@ static void animateRobot(int value)
 		elapsedTime += msecsPerFrame;
 		glutPostRedisplay();
 	
-			glutTimerFunc(msecsPerFrame, animateRobot, 0);
+		//Time total animation
+		stopwatch += msecsPerFrame;
+
+		glutTimerFunc(msecsPerFrame, animateRobot, 0);
+	}
+	else
+	{
+		isAnimating =  true;
+		cout << "Stopwatch = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
+		stopwatch = 0;
 	}
 }
 /*-----------------------------------------------*/
