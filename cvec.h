@@ -137,8 +137,11 @@ public:
 
   // Normalize self and returns self
   Cvec& normalize() {
-    assert(dot(*this, *this) > CS175_EPS2);
-    return *this /= std::sqrt(dot(*this, *this));
+    //assert(dot(*this, *this) > CS175_EPS2);
+    if (dot(*this, *this) <= CS175_EPS2) //If zero vector just return zero vector
+    	return *this;
+    else
+    	return *this /= std::sqrt(dot(*this, *this));
   }
 };
 
@@ -171,7 +174,7 @@ inline T norm(const Cvec<T, n>& v) {
 template<typename T, int n>
 inline Cvec<T, n> normalize(const Cvec<T,n>& v) {
   //assert(dot(v, v) > CS175_EPS2);
-  if (dot(v,v) <= CS175_EPS2)
+  if (dot(v,v) <= CS175_EPS2) //If zero vector just return zero vector
 	  return v;
   else
 	return v / norm(v);
