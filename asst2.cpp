@@ -40,9 +40,7 @@
 #include "rigtform.h"
 
 #define M_PI 3.1415926535897932384626433832795;
-#define I_POWER 0;
-#define I_SLERP 1;
-#define I_LERP 2;
+enum {I_POWER, I_SLERP, I_LERP, PAUSE};
 
 
 using namespace std;      // for string, vector, iostream, and other standard C++ stuff
@@ -85,7 +83,7 @@ static int g_mouseClickX, g_mouseClickY; // coordinates for mouse click event
 static int g_activeShader = 0;
 static const int g_numOfObjects = 2; //Number of cube objects to be drawn
 static float g_framesPerSecond = 32;
-static int g_interpolationType  = I_SLERP;
+static int g_interpolationType  = I_POWER;
 
 struct ShaderState {
   GlProgram program;
@@ -690,7 +688,22 @@ static void motion(const int x, const int y) {
   g_mouseClickY = g_windowHeight - y - 1;
 }
 
+/*-----------------------------------------------*/
+static void timer(int value)
+{
+	if (value == PAUSE)
+		cout << "Paused\n";
 
+	//cout << "value = " << value << "\n";
+	float msecs = 1/(g_framesPerSecond / 1000);
+	cout << "fps = " << g_framesPerSecond << "\n";
+
+	//TODO update animations
+
+	glutPostRedisplay();
+	glutTimerFunc(msecs, timer, 0);
+}
+/*-----------------------------------------------*/
 static void mouse(const int button, const int state, const int x, const int y) {
   g_mouseClickX = x;
   g_mouseClickY = g_windowHeight - y - 1;  // conversion from GLUT window-coordinate-system to OpenGL window-coordinate-system
@@ -749,33 +762,29 @@ static void keyboard(const unsigned char key, const int x, const int y)
 	{
 		g_framesPerSecond = 8;
 	}
-	else if (key == '3')
+	else if (key == '4')
 	{
 		g_framesPerSecond = 4;
 	}
-	else if (key == '4')
+	else if (key == '5')
 	{
 		g_framesPerSecond = 2;
 	}
-	else if (key == '5')
+	else if (key == '6')
 	{
 		g_framesPerSecond = 1;
 	}
-	else if (key == '6')
+	else if (key == '7')
 	{
 		g_framesPerSecond = 0.5;
 	}
-	else if (key == '7')
+	else if (key == '8')
 	{
 		g_framesPerSecond = 0.25;
 	}
-	else if (key == '8')
-	{
-		g_framesPerSecond = 0.125;
-	}
 	else if (key == '9')
 	{
-		g_framesPerSecond = 0.0625;
+		g_framesPerSecond = 0.125;
 	}
 	
 	if (key == 'p')
@@ -792,7 +801,13 @@ static void keyboard(const unsigned char key, const int x, const int y)
 	}
 	else if (key == 'r')
 	{
-
+		float msecs =  g_framesPerSecond / 1000;
+		glutTimerFunc(msecs, timer, PAUSE);
+	}
+	else if (key == 'a')
+	{
+		float msecs =  g_framesPerSecond / 1000;
+		glutTimerFunc(msecs, timer, 0);
 	}
 	else if (key == ',')
 	{
@@ -842,7 +857,6 @@ static void initGlutState(int argc, char * argv[]) {
   glutMotionFunc(motion);                                 // mouse movement callback
   glutMouseFunc(mouse);                                   // mouse click callback
   glutKeyboardFunc(keyboard);
-  glutKeyboardUpFunc(keyUp);										// Keyboard key released
 }
 
 static void initGLState() {
@@ -902,6 +916,9 @@ int main(int argc, char * argv[]) {
 		Matrix4::print(g_skyRbt);
 		cout << "\n";
 */
+
+		//glutTimerFunc(0, timer, -1);
+
 		glutMainLoop();
 		return 0;
   }
