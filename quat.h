@@ -15,6 +15,8 @@ double norm2(const Quat& q);
 Quat inv(const Quat& q);
 Quat normalize(const Quat& q);
 Matrix4 quatToMatrix(const Quat& q);
+Quat pow(const Quat& q, float a);
+Quat negate(const Quat& q);
 
 class Quat {
   Cvec4 q_;  // layout is: q_[0]==w, q_[1]==x, q_[2]==y, q_[3]==z
@@ -39,6 +41,16 @@ public:
   Quat() : q_(1,0,0,0) {}
   Quat(const double w, const Cvec3& v) : q_(w, v[0], v[1], v[2]) {}
   Quat(const double w, const double x, const double y, const double z) : q_(w, x,y,z) {}
+
+  bool operator == (const Quat& a)
+  {
+	  return (q_[0] == a[0] && q_[1] == a[1] && q_[2] == a[2] && q_[3] == a[3]);
+  }
+
+  bool operator != (const Quat& a)
+  {
+	  return !(Quat(*this) == a);
+  }
 
   Quat& operator += (const Quat& a) {
     q_ += a.q_;
@@ -109,6 +121,36 @@ public:
     r.q_[0] = std::cos(h);
     return r;
   }
+
+  static Quat pow(const Quat& q_, float a)
+  {
+		Quat q;
+		Cvec3 axis;
+
+		// If w is negative Calculate based on inverse
+		if (q_[0] < 0)
+			q = negate(q_);
+		else
+			q = q_;
+	  
+		float theta = 0;
+		Cvec3 c = Cvec3(q[1],q[2],q[3]);
+		//Cvec3 zeroVec = Cvec3(0,0,0);
+		//if  (c != zeroVec)
+		axis = normalize(c);
+		float cNorm = norm(c);
+		theta = cos(atan2(norm(c),q[0]));
+
+		Quat currentQ = Quat((cos(a * theta) / 2.0), axis * (sin(a * theta) / 2.0));
+
+		return currentQ;
+  }
+
+  static Quat negate(const Quat& q)
+  {
+	  return Quat(-q[0],-q[1],-q[2],-q[3]);
+  }
+
 };
 
 inline double dot(const Quat& q, const Quat& p) {

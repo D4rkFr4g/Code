@@ -710,7 +710,7 @@ static void animateRobot(int value)
 	float msecsPerFrame = 1/(g_framesPerSecond / 1000);
 	static int animationPart = 0;
 	static bool isAnimating = true;
-	static float stepsPerSecond = 2.0/3.0;
+	static float stepsPerSecond = 20.0/34.0; // Time Allowed / Steps taken
 
 	//Initial walk to right 5secs (+)x-axis
 	static RigTForm start = g_rigidBodies[0].rtf;
@@ -725,26 +725,54 @@ static void animateRobot(int value)
 	{
 		animationPart++;
 
-		//Walk (-)z 10 paces
+		//Rotate
 		if (animationPart == 1)
+		{
+			start = end;
+			end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
+			totalTime = stepsPerSecond * 1 * 1000;
+		}
+		//Walk (-)z 10 paces
+		else if (animationPart == 2)
 		{
 			start = end;
 			end = RigTForm(Cvec3(0,0,-10)) * start;
 			totalTime = stepsPerSecond * 10 * 1000;
 		}
+		//Rotate
+		else if (animationPart == 3)
+		{
+			start = end;
+			end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation());
+			totalTime = stepsPerSecond * 1 * 1000;
+		}
 		//Walk (-)x 5 paces
-		else if (animationPart == 2)
+		else if (animationPart == 4)
 		{
 			start = end;
 			end = RigTForm(Cvec3(-5,0,0)) * start;
 			totalTime = stepsPerSecond * 5 * 1000;
 		}
+		//Rotate
+		else if (animationPart == 5)
+		{
+			start = end;
+			end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation());
+			totalTime = stepsPerSecond * 1 * 1000;
+		}
 		//Walk (+)z 10 paces
-		else if (animationPart == 3)
+		else if (animationPart == 6)
 		{
 			start = end;
 			end = RigTForm(Cvec3(0,0,10)) * start;
 			totalTime = stepsPerSecond * 10 * 1000;
+		}
+		//Rotate
+		else if (animationPart == 7)
+		{
+			start = end;
+			end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation());
+			totalTime = stepsPerSecond * 1 * 1000;
 		}
 		else
 		{
@@ -771,8 +799,20 @@ static void animateRobot(int value)
 		g_rigidBodies[0].rtf.setTranslation(startVec + (temp * alpha));
 
 		//Handle Rotational Interpolation
-		if (g_interpolationType == I_POWER)
+		if (g_interpolationType == I_POWER) // Quaternion Powering
 		{
+			Quat startQ = start.getRotation(); // Initial rotation
+			Quat endQ = end.getRotation();	// Final rotatoin
+			
+			if (endQ - startQ != Quat(0,0,0,0)) // Check for actual rotation
+			{
+				Quat currentQ = Quat::pow(endQ, alpha); // Calculate this frames rotation Quat
+
+				//g_rigidBodies[0].rtf.setRotation(endQ); //Works to show end rotation points are correct
+				g_rigidBodies[0].rtf.setRotation(currentQ); // Rotates incorrectly on one diagonal
+				//g_rigidBodies[0].rtf.setRotation(startQ * currentQ); // Apply rotation with respect to starting Position
+				cout << "[" << currentQ[0] << ", " << currentQ[1] << ", " << currentQ[2] << ", " << currentQ[3] << "]\n";
+			}
 		}
 		else if (g_interpolationType == I_SLERP)
 		{
@@ -880,7 +920,12 @@ static void keyboard(const unsigned char key, const int x, const int y)
 		g_framesPerSecond = 0.125;
 	}
 	
-	if (key == 'p')
+	if (key == 'q')
+	{
+		Quat q = g_rigidBodies[0].rtf.getRotation();
+		g_rigidBodies[0].rtf.setRotation(q * Quat::makeYRotation(15));
+	}
+	else if (key == 'p')
 	{
 		g_interpolationType = I_POWER;
 	}

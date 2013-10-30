@@ -70,6 +70,22 @@ public:
     return d_[i];
   }
 
+  bool operator == (const Cvec& v)
+  {
+	  bool equal = true;
+	  for (int i = 0; i < n; ++i) 
+	  {
+		  if (d_[i] != v[i])
+			  equal = false;
+	  }
+	  return equal;
+  }
+
+  bool operator != (const Cvec& v)
+  {
+	  return !(*this == v);
+  }
+
   Cvec operator - () const {
     return Cvec(*this) *= -1;
   }
@@ -154,8 +170,11 @@ inline T norm(const Cvec<T, n>& v) {
 // function version v.normalize() ).
 template<typename T, int n>
 inline Cvec<T, n> normalize(const Cvec<T,n>& v) {
-  assert(dot(v, v) > CS175_EPS2);
-  return v / norm(v);
+  //assert(dot(v, v) > CS175_EPS2);
+  if (dot(v,v) <= CS175_EPS2)
+	  return v;
+  else
+	return v / norm(v);
 }
 
 // element of type double precision float
