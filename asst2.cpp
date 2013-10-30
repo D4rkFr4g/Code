@@ -730,6 +730,9 @@ static void animateRobot(int value)
 		{
 			start = end;
 			end = RigTForm(start.getTranslation(), start.getRotation() * Quat().makeYRotation(90));
+			cout << "start angle = " << start.getRotation().getAngle() << "\n";
+			cout << "Quat angle = " << Quat().makeYRotation(90).getAngle() << "\n";
+			cout << "combined angle = " << (start.getRotation() * Quat().makeYRotation(90)).getAngle() << "\n\n";
 			//end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
 			//end = RigTForm(Quat().makeYRotation(90)) * start;
 			totalTime = stepsPerSecond * 1 * 1000;
@@ -793,6 +796,11 @@ static void animateRobot(int value)
 				//g_rigidBodies[0].rtf.setRotation(currentQ);  //Rotating as if always starting from original rotate
 				g_rigidBodies[0].rtf.setRotation(currentQ * startQ); // Apply rotation with respect to starting Position //Double rotates
 				cout << "[" << currentQ[0] << ", " << currentQ[1] << ", " << currentQ[2] << ", " << currentQ[3] << "]\n";
+
+				//Debug stuff
+				cout << "currentQ angle = " << currentQ.getAngle() << "\n";
+				cout << "startQ angle = " << startQ.getAngle() << "\n";
+				cout << "currentQ * startQ angle = " << (currentQ * startQ).getAngle() << "\n\n";
 			}
 		}
 		else if (g_interpolationType == I_SLERP)

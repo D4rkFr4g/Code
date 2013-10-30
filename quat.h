@@ -127,12 +127,12 @@ public:
 	{
 		Quat q;
 		Cvec3 axis;
-
+/*
 		// If w is negative Calculate based on inverse
 		if (q_[0] < 0)
 			q = negate(q_);
 		else
-			q = q_;
+*/			q = q_;
 	  
 		float theta = 0;
 		Cvec3 c = Cvec3(q[1],q[2],q[3]);
@@ -141,10 +141,11 @@ public:
 		//theta = cos(atan2(norm(c),q[0])); //Not sure if cos() is necessary
 		theta = atan2(norm(c),q[0]);
 		
-		Quat currentQ = Quat((cos(a * theta) / 2.0), axis * (sin(a * theta) / 2.0));
+		Quat currentQ = Quat(cos((a * theta) / 2.0), axis * sin((a * theta) / 2.0));
+		
 		//Verify angle being sent
-		//cout << "currentAngle = " << atan2(norm(Cvec3(currentQ[1],currentQ[2],currentQ[3])),currentQ[0]) * (180/CS175_PI) << "\n";
-		cout << "currentAngle = " << currentQ.getAngle();
+		//cout << "alpha = " << a << "\n";
+		//cout << "currentAngle = " << currentQ.getAngle() << "\n";
 		
 		return currentQ;
 	}
@@ -154,9 +155,9 @@ public:
 		return Quat(-q[0],-q[1],-q[2],-q[3]);
 	}
    
-	static double getAngle()
+	double getAngle()
 	{
-		return atan2(norm(Cvec3(q_[1],q_[2],q_[3])),q_[0]) * (180/CS175_PI);	
+		return 2 * atan2(norm(Cvec3(q_(1),q_(2),q_(3))),q_(0)) * (180/CS175_PI);	
 	}
 };
 
