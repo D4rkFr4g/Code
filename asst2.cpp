@@ -721,20 +721,30 @@ static void animateRobot(int value)
 	
 
 	//Handles which part of animation is currently running
-	if (elapsedTime >= totalTime)
+	if (elapsedTime > totalTime)
 	{
 		animationPart++;
+
+		//end = g_rigidBodies[0].rtf;
+		g_rigidBodies[0].rtf = end;
 
 		//Rotate
 		if (animationPart == 1 || animationPart == 3 || animationPart == 5 || animationPart == 7)
 		{
+			
+			
 			start = end;
-			end = RigTForm(start.getTranslation(), start.getRotation() * Quat().makeYRotation(90));
-			cout << "start angle = " << start.getRotation().getAngle() << "\n";
-			cout << "Quat angle = " << Quat().makeYRotation(90).getAngle() << "\n";
-			cout << "combined angle = " << (start.getRotation() * Quat().makeYRotation(90)).getAngle() << "\n\n";
+			end = RigTForm(start.getTranslation(), Quat::makeYRotation(90) * start.getRotation());
+			
+			cout <<"===========================\n";
+			cout << "Start angle = " << start.getRotation().getAngle() << "\n";
+			//cout << "Delta angle = " << Quat().makeYRotation(90).getAngle() << "\n";
+			cout << "End angle = " << (Quat().makeYRotation(90) * start.getRotation()).getAngle() << "\n";
+			cout <<"===========================\n\n";
+
 			//end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
 			//end = RigTForm(Quat().makeYRotation(90)) * start;
+			//end = start * RigTForm(Quat().makeYRotation(90));
 			totalTime = stepsPerSecond * 1 * 1000;
 		}
 		//Walk (-)z 10 paces
@@ -759,7 +769,9 @@ static void animateRobot(int value)
 			totalTime = stepsPerSecond * 10 * 1000;
 		}
 		else
-		{
+		{	
+			glutPostRedisplay();
+
 			isAnimating = false;
 
 			//Reset values to default
@@ -790,21 +802,25 @@ static void animateRobot(int value)
 			
 			if (endQ - startQ != Quat(0,0,0,0)) // Check for actual rotation
 			{
-				Quat currentQ = Quat::pow(endQ, alpha); // Calculate this frames rotation Quat
-
-				//g_rigidBodies[0].rtf.setRotation(endQ); //Works to show end rotation points are correct
-				//g_rigidBodies[0].rtf.setRotation(currentQ);  //Rotating as if always starting from original rotate
+				//cout << "Endq = ";
+				//endQ.print();
+				Quat currentQ = Quat::pow(endQ * inv(startQ), alpha); // Calculate this frames rotation Quat
 				g_rigidBodies[0].rtf.setRotation(currentQ * startQ); // Apply rotation with respect to starting Position //Double rotates
-				cout << "[" << currentQ[0] << ", " << currentQ[1] << ", " << currentQ[2] << ", " << currentQ[3] << "]\n";
-
+				
+				
+/*				
+				cout << "currentQ";
+				currentQ.print();
 				//Debug stuff
 				cout << "currentQ angle = " << currentQ.getAngle() << "\n";
 				cout << "startQ angle = " << startQ.getAngle() << "\n";
 				cout << "currentQ * startQ angle = " << (currentQ * startQ).getAngle() << "\n\n";
+				*/
 			}
 		}
 		else if (g_interpolationType == I_SLERP)
 		{
+
 		}
 		else if (g_interpolationType == I_LERP)
 		{

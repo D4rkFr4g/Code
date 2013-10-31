@@ -127,19 +127,22 @@ public:
 	{
 		Quat q;
 		Cvec3 axis;
-/*
+
 		// If w is negative Calculate based on inverse
-		if (q_[0] < 0)
+/*		if (q_[0] < 0)
 			q = negate(q_);
 		else
 */			q = q_;
-	  
+  
+		//q = normalize(q_);
+
 		float theta = 0;
 		Cvec3 c = Cvec3(q[1],q[2],q[3]);
 		axis = normalize(c); //Adjusted normalize function so a zero vector is normalized as zero vector
 		float cNorm = norm(c);
 		//theta = cos(atan2(norm(c),q[0])); //Not sure if cos() is necessary
-		theta = atan2(norm(c),q[0]);
+		theta = 2 * atan2(norm(c),q[0]);
+		//cout << "theta = " << theta << "\n";
 		
 		Quat currentQ = Quat(cos((a * theta) / 2.0), axis * sin((a * theta) / 2.0));
 		
@@ -158,6 +161,11 @@ public:
 	double getAngle()
 	{
 		return 2 * atan2(norm(Cvec3(q_(1),q_(2),q_(3))),q_(0)) * (180/CS175_PI);	
+	}
+
+	void print()
+	{
+		cout << "[" << q_[0] << ", " << q_[1] << ", " << q_[2] << ", " << q_[3] << "]\n";
 	}
 };
 
