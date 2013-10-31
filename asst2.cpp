@@ -84,6 +84,7 @@ static int g_activeShader = 0;
 static const int g_numOfObjects = 2; //Number of cube objects to be drawn
 static float g_framesPerSecond = 32;
 static int g_interpolationType  = I_POWER;
+static bool isKeyboardActive = true;
 
 struct ShaderState {
   GlProgram program;
@@ -691,17 +692,16 @@ static void motion(const int x, const int y) {
 /*-----------------------------------------------*/
 static void timer(int value)
 {
-	if (value == PAUSE)
-		cout << "Paused\n";
+	// Flip Keyboard
+	isKeyboardActive = !isKeyboardActive;
 
-	//cout << "value = " << value << "\n";
-	float msecs = 1/(g_framesPerSecond / 1000);
-	cout << "fps = " << g_framesPerSecond << "\n";
+	float msecs = 10 * 1000;
+	
+	//TODO Call Camera Animation
+	
 
-	//TODO update animations
-
-	glutPostRedisplay();
-	glutTimerFunc(msecs, timer, 0);
+	if (!isKeyboardActive)
+		glutTimerFunc(msecs, timer, 0);
 }
 /*-----------------------------------------------*/
 static void animateRobot(int value)
@@ -967,7 +967,88 @@ static void animateLegs(int value)
 		elapsedTime = totalTime;
 	}
 }
+/*-----------------------------------------------*/
+static void animateCamera(int value)
+{
+	static float stopwatch = 0;
+	float msecsPerFrame = 1/(g_framesPerSecond / 1000);
+	static int animationPart = 0;
+	static bool isAnimating = true;
+	const static float stepsPerSecond = 10.0/2.0; // Time Allowed / Steps taken
+	static float totalTime = stepsPerSecond * 1 * 1000;
+	static float elapsedTime = 0;
+	
+	static RigTForm start = g_eyeRbt;
+	static RigTForm end = RigTForm(g_eyeRbt.getTranslation(), Quat::makeYRotation(180) * start.getRotation());
+	
+	//Handles which part of animation is currently running
+	if (elapsedTime >= totalTime)
+	{
+		g_eyeRbt = end;
 
+		if (animationPart == 0)
+		{
+			start = g_eyeRbt;
+			end = RigTForm(g_eyeRbt.getTranslation(), Quat::makeYRotation(180) * start.getRotation());
+		}
+		else
+		{
+			glutPostRedisplay();
+			isAnimating = false;
+		}
+		//Reset values to default		
+		totalTime = stepsPerSecond * 1 * 1000;
+		elapsedTime = 0;
+
+		animationPart++;
+	}
+
+	if (isAnimating)
+	{
+		float alpha = elapsedTime / totalTime;
+
+		// Initial rotations
+		Quat startQ = start.getRotation();
+
+		// Final rotations
+		Quat endQ = end.getRotation();
+
+		// Handle Rotational Interpolation
+		if (g_interpolationType == I_POWER) // Quaternion Powering
+		{	
+			if (endQ - startQ != Quat(0,0,0,0)) // Check for actual rotation
+			{
+				Quat currentQ = Quat::pow(endQ, alpha);
+				g_eyeRbt.setRotation(startQ * currentQ); // Apply rotation with respect to starting Position //Double rotates
+			}
+		}
+		else if (g_interpolationType == I_SLERP) //Spherical linear interpolation
+		{
+			g_eyeRbt.setRotation(Quat::slerp(startQ, endQ, alpha) * startQ);
+		}
+		else if (g_interpolationType == I_LERP)
+		{
+			//Normalize quaternions
+			Quat q = normalize(Quat::lerp(startQ, endQ, alpha));
+
+			g_eyeRbt.setRotation(q);
+		}
+
+		elapsedTime += msecsPerFrame;
+		glutPostRedisplay();
+	
+		//Time total animation
+		stopwatch += msecsPerFrame;
+
+		glutTimerFunc(msecsPerFrame, animateCamera, 0);
+	}
+	else
+	{
+		isAnimating =  true;
+		cout << "Stopwatch Legs = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
+		stopwatch = 0;
+	}
+}
 /*-----------------------------------------------*/
 static void mouse(const int button, const int state, const int x, const int y) {
   g_mouseClickX = x;
@@ -993,125 +1074,129 @@ static void keyboard(const unsigned char key, const int x, const int y)
 		REMARKS:		Handles robot modifications based on key presses and then requests a redisplay
 	*/
 
-	switch (key) 
+	if (isKeyboardActive)
 	{
-		case 27:
-			exit(0);                                  // ESC
-		case 'i':
-			cout << " ============== H E L P ==============\n\n"
-			<< "i\t\thelp menu\n"
-			<< "s\t\tsave screenshot\n"
-			<< "f\t\tToggle flat shading on/off.\n"
-			<< "o\t\tCycle object to edit\n"
-			<< "v\t\tCycle view\n"
-			<< "drag left mouse to rotate\n" << endl;
-			break;
-		case 's':
-			glFlush();
-			writePpmScreenshot(g_windowWidth, g_windowHeight, "out.ppm");
-			break;
-		case 'f':
-			g_activeShader ^= 1;
-			break;
-  }
+		switch (key) 
+		{
+			case 27:
+				exit(0);                                  // ESC
+			case 'i':
+				cout << " ============== H E L P ==============\n\n"
+				<< "i\t\thelp menu\n"
+				<< "s\t\tsave screenshot\n"
+				<< "f\t\tToggle flat shading on/off.\n"
+				<< "o\t\tCycle object to edit\n"
+				<< "v\t\tCycle view\n"
+				<< "drag left mouse to rotate\n" << endl;
+				break;
+			case 's':
+				glFlush();
+				writePpmScreenshot(g_windowWidth, g_windowHeight, "out.ppm");
+				break;
+			case 'f':
+				g_activeShader ^= 1;
+				break;
+	  }
 
-	if (key == '1')
-	{
-		g_framesPerSecond = 32;
-	}
-	else if (key == '2')
-	{
-		g_framesPerSecond = 16;
-	}
-	else if (key == '3')
-	{
-		g_framesPerSecond = 8;
-	}
-	else if (key == '4')
-	{
-		g_framesPerSecond = 4;
-	}
-	else if (key == '5')
-	{
-		g_framesPerSecond = 2;
-	}
-	else if (key == '6')
-	{
-		g_framesPerSecond = 1;
-	}
-	else if (key == '7')
-	{
-		g_framesPerSecond = 0.5;
-	}
-	else if (key == '8')
-	{
-		g_framesPerSecond = 0.25;
-	}
-	else if (key == '9')
-	{
-		g_framesPerSecond = 0.125;
-	}
+		if (key == '1')
+		{
+			g_framesPerSecond = 32;
+		}
+		else if (key == '2')
+		{
+			g_framesPerSecond = 16;
+		}
+		else if (key == '3')
+		{
+			g_framesPerSecond = 8;
+		}
+		else if (key == '4')
+		{
+			g_framesPerSecond = 4;
+		}
+		else if (key == '5')
+		{
+			g_framesPerSecond = 2;
+		}
+		else if (key == '6')
+		{
+			g_framesPerSecond = 1;
+		}
+		else if (key == '7')
+		{
+			g_framesPerSecond = 0.5;
+		}
+		else if (key == '8')
+		{
+			g_framesPerSecond = 0.25;
+		}
+		else if (key == '9')
+		{
+			g_framesPerSecond = 0.125;
+		}
 	
-	if (key == 'q')
-	{
-		Quat q = g_rigidBodies[0].rtf.getRotation();
-		g_rigidBodies[0].rtf.setRotation(q * Quat::makeYRotation(15));
-	}
-	else if (key == 'p')
-	{
-		g_interpolationType = I_POWER;
-	}
-	else if (key == 's')
-	{
-		g_interpolationType = I_SLERP;
-	}
-	else if (key == 'l')
-	{
-		g_interpolationType = I_LERP;
-	}
-	else if (key == 'r')
-	{
-		float msecs =  g_framesPerSecond / 1000;
-		glutTimerFunc(msecs, timer, PAUSE);
-	}
-	else if (key == 'a')
-	{
-		float msecs =  g_framesPerSecond / 1000;
-		glutTimerFunc(msecs, animateRobot, 0);
-		glutTimerFunc(msecs, animateLegs, 0);
-	}
-	else if (key == ',')
-	{
-		g_eyeRbt.setRotation(g_eyeRbt.getRotation() * Quat().makeZRotation(15));
-	}
-	else if (key == '.')
-	{
-		g_eyeRbt.setRotation(g_eyeRbt.getRotation() * Quat().makeZRotation(-15));
-	}
-	else if (key == '-')
-	{
-		float max = 20;
-		Cvec3 cameraTrans = g_eyeRbt.getTranslation();
+		if (key == 'q')
+		{
+			Quat q = g_rigidBodies[0].rtf.getRotation();
+			g_rigidBodies[0].rtf.setRotation(q * Quat::makeYRotation(15));
+		}
+		else if (key == 'p')
+		{
+			g_interpolationType = I_POWER;
+		}
+		else if (key == 's')
+		{
+			g_interpolationType = I_SLERP;
+		}
+		else if (key == 'l')
+		{
+			g_interpolationType = I_LERP;
+		}
+		else if (key == 'r')
+		{
+			float msecs =  0 * 1000;
+			glutTimerFunc(msecs, timer, PAUSE);
+			glutTimerFunc(msecs, animateCamera,0);
+		}
+		else if (key == 'a')
+		{
+			float msecs =  0 * 1000;
+			glutTimerFunc(msecs, animateRobot, 0);
+			glutTimerFunc(msecs, animateLegs, 0);
+		}
+		else if (key == ',')
+		{
+			g_eyeRbt.setRotation(g_eyeRbt.getRotation() * Quat().makeZRotation(15));
+		}
+		else if (key == '.')
+		{
+			g_eyeRbt.setRotation(g_eyeRbt.getRotation() * Quat().makeZRotation(-15));
+		}
+		else if (key == '-')
+		{
+			float max = 20;
+			Cvec3 cameraTrans = g_eyeRbt.getTranslation();
 
-		g_eyeRbt.setTranslation(cameraTrans + Cvec3(0,0,1));
+			g_eyeRbt.setTranslation(cameraTrans + Cvec3(0,0,1));
 		
-		if (cameraTrans[2] >= max)
-			g_eyeRbt.setTranslation(Cvec3(cameraTrans[0], cameraTrans[1], max));
+			if (cameraTrans[2] >= max)
+				g_eyeRbt.setTranslation(Cvec3(cameraTrans[0], cameraTrans[1], max));
 
-		//cout << "( " << g_eyeRbt.getTranslation()[0] << ", " << g_eyeRbt.getTranslation()[1] << ", " << g_eyeRbt.getTranslation()[2] << "\n";
+			//cout << "( " << g_eyeRbt.getTranslation()[0] << ", " << g_eyeRbt.getTranslation()[1] << ", " << g_eyeRbt.getTranslation()[2] << "\n";
 
-	}
-	else if (key == '=')
-	{
-		float min = 5;
-		Cvec3 cameraTrans = g_eyeRbt.getTranslation();
+		}
+		else if (key == '=')
+		{
+			float min = 5;
+			Cvec3 cameraTrans = g_eyeRbt.getTranslation();
 
-		g_eyeRbt.setTranslation(cameraTrans - Cvec3(0,0,1));
+			g_eyeRbt.setTranslation(cameraTrans - Cvec3(0,0,1));
 	
-		if (cameraTrans[2] <= min)
-			g_eyeRbt.setTranslation(Cvec3(cameraTrans[0], cameraTrans[1], min));
+			if (cameraTrans[2] <= min)
+				g_eyeRbt.setTranslation(Cvec3(cameraTrans[0], cameraTrans[1], min));
 
-		//cout << "( " << g_eyeRbt.getTranslation()[0] << ", " << g_eyeRbt.getTranslation()[1] << ", " << g_eyeRbt.getTranslation()[2] << "\n";
+			//cout << "( " << g_eyeRbt.getTranslation()[0] << ", " << g_eyeRbt.getTranslation()[1] << ", " << g_eyeRbt.getTranslation()[2] << "\n";
+		}
 	}
 
 	glutPostRedisplay();
