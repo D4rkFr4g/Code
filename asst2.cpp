@@ -6,9 +6,9 @@
 //
 ////////////////////////////////////////////////////////////////////////
 /****************************************************** 
-* Project:         CS 116A Homework #2 
+* Project:         CS 116A Homework #3 
 * File:            asst2.cpp 
-* Purpose:         Translations, rotations, and scalings in OpenGL
+* Purpose:         Quaternions, RigTForms, Animation
 * Start date:      9/28/13 
 * Programmer:      Zane Melcho 
 * 
@@ -732,17 +732,6 @@ static void animateRobot(int value)
 			start = end;
 			end = RigTForm(start.getTranslation(), Quat::makeYRotation(90) * start.getRotation());
 			
-			/*
-			cout <<"===========================\n";
-			cout << "Start angle = " << start.getRotation().getAngle() << "\n";
-			//cout << "Delta angle = " << Quat().makeYRotation(90).getAngle() << "\n";
-			cout << "End angle = " << (Quat().makeYRotation(90) * start.getRotation()).getAngle() << "\n";
-			cout <<"===========================\n\n";
-			*/
-
-			//end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
-			//end = RigTForm(Quat().makeYRotation(90)) * start;
-			//end = start * RigTForm(Quat().makeYRotation(90));
 			totalTime = stepsPerSecond * 1 * 1000;
 		}
 		//Walk (-)z 10 paces
@@ -836,37 +825,71 @@ static void animateLegs(int value)
 	float msecsPerFrame = 1/(g_framesPerSecond / 1000);
 	static int animationPart = 0;
 	static bool isAnimating = true;
-	static float stepsPerSecond = 20.0/34.0; // Time Allowed / Steps taken
+	const static float degreesPerStep = 30;
+	const static float stepsPerSecond = 20.0/34.0; // Time Allowed / Steps taken
 	RigTForm *leftLeg = &g_rigidBodies[0].children[0]->children[2]->children[2]->rtf;
 	RigTForm *rightLeg = &g_rigidBodies[0].children[0]->children[2]->children[3]->rtf;
 
 	static RigTForm startLeftLeg = *leftLeg;
-	static RigTForm endLeftLeg;
+	static RigTForm endLeftLeg = startLeftLeg;
 	static RigTForm startRightLeg = *rightLeg;
-	static RigTForm endRightLeg;
+	static RigTForm endRightLeg = startRightLeg;
 
 	static float totalTime = stepsPerSecond * 1 * 1000;
-	static float elapsedTime = 0;
+	static float elapsedTime = totalTime;
 	
 	
 
 	//Handles which part of animation is currently running
-	if (elapsedTime > totalTime)
+	if (elapsedTime >= totalTime)
 	{
-		if (animationPart < 34)
+		leftLeg->setRotation(endLeftLeg.getRotation());
+		rightLeg->setRotation(endRightLeg.getRotation());
+
+
+		// Initialize with first step
+		if (animationPart == 0)
 		{
 			startLeftLeg = endLeftLeg;
 			startRightLeg = endRightLeg;
-			if (animationPart %2 > 0)
+
+			endLeftLeg = RigTForm(Quat::makeXRotation(-degreesPerStep) * startLeftLeg.getRotation());
+			endRightLeg = RigTForm(Quat::makeXRotation(degreesPerStep) * startRightLeg.getRotation());
+
+			cout << "endLeftLeg Angle = " << endLeftLeg.getRotation().getAngle() << "\n";
+			cout << "endRightLeg Angle = " << endRightLeg.getRotation().getAngle() << "\n";
+
+			totalTime = stepsPerSecond * 0.5 * 1000;
+		}
+		else if (animationPart < 34)
+		{
+			startLeftLeg = endLeftLeg;
+			startRightLeg = endRightLeg;
+			if (animationPart %2 == 0)
 			{
-				endLeftLeg = startLeftLeg.getRotation() * Quat::makeZRotation(30);
-				endRightLeg = startRightLeg.getRotation() * Quat::makeZRotation(-30);
+				endLeftLeg = RigTForm(Quat::makeXRotation(-degreesPerStep * 2) * startLeftLeg.getRotation());
+				endRightLeg = RigTForm(Quat::makeXRotation(degreesPerStep * 2) * startRightLeg.getRotation());
 			}
 			else
 			{
-				endLeftLeg = startLeftLeg.getRotation() * Quat::makeZRotation(-30);
-				endRightLeg = startRightLeg.getRotation() * Quat::makeZRotation(30);
+				endLeftLeg = RigTForm(Quat::makeXRotation(degreesPerStep * 2) * startLeftLeg.getRotation());
+				endRightLeg = RigTForm(Quat::makeXRotation(-degreesPerStep * 2) * startRightLeg.getRotation());
 			}
+			cout << "Degrees = " << degreesPerStep << "\n";
+			cout << "endLeftLeg Angle = " << endLeftLeg.getRotation().getAngle() << "\n";
+			cout << "endRightLeg Angle = " << endRightLeg.getRotation().getAngle() << "\n";
+
+			totalTime = stepsPerSecond * 1 * 1000;
+		}
+		else if (animationPart == 34)
+		{
+			startLeftLeg = endLeftLeg;
+			startRightLeg = endRightLeg;
+
+			endLeftLeg = RigTForm(Quat());
+			endRightLeg = RigTForm(Quat());
+
+			totalTime = stepsPerSecond * 0.5 * 1000;
 		}
 		else
 		{
@@ -875,16 +898,14 @@ static void animateLegs(int value)
 			isAnimating = false;
 
 			//Reset values to default
-			animationPart = 0;
-			startLeftLeg = leftLeg;
-			startRightLeg = rightLeg;
+			startLeftLeg = *leftLeg;
+			startRightLeg = *rightLeg;
 			totalTime = stepsPerSecond * 1 * 1000;
 		}
 
-		leftLeg = &endLeftLeg;
-		rightLeg = &endRightLeg;
-
 		animationPart++;
+
+		elapsedTime = 0;
 	}
 
 	if (isAnimating)
@@ -916,13 +937,17 @@ static void animateLegs(int value)
 		}
 		else if (g_interpolationType == I_SLERP) //Spherical linear interpolation
 		{
-			//TODO Left / Right
-			g_rigidBodies[0].rtf.setRotation(Quat::slerp(startQ, endQ, alpha) * startQ);
+			leftLeg->setRotation(Quat::slerp(startLeftLegQ, endLeftLegQ, alpha) * startLeftLegQ);
+			rightLeg->setRotation(Quat::slerp(startRightLegQ, endRightLegQ, alpha) * startRightLegQ);
 		}
 		else if (g_interpolationType == I_LERP)
 		{
-			Quat q = normalize(Quat::lerp(startQ, endQ, alpha)); //Normalize lerped quaternion
-			g_rigidBodies[0].rtf.setRotation(q);
+			//Normalize quaternions
+			Quat leftLegQ = normalize(Quat::lerp(startLeftLegQ, endLeftLegQ, alpha));
+			Quat rightLegQ = normalize(Quat::lerp(startRightLegQ, endRightLegQ, alpha));
+
+			leftLeg->setRotation(leftLegQ);
+			rightLeg->setRotation(rightLegQ);
 		}
 
 		elapsedTime += msecsPerFrame;
@@ -931,15 +956,16 @@ static void animateLegs(int value)
 		//Time total animation
 		stopwatch += msecsPerFrame;
 
-		glutTimerFunc(msecsPerFrame, animateRobot, 0);
+		glutTimerFunc(msecsPerFrame, animateLegs, 0);
 	}
 	else
 	{
 		isAnimating =  true;
-		//cout << "Stopwatch = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
+		cout << "Stopwatch Legs = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
 		stopwatch = 0;
+		animationPart = 0;
+		elapsedTime = totalTime;
 	}
-	*/
 }
 
 /*-----------------------------------------------*/
@@ -1052,6 +1078,7 @@ static void keyboard(const unsigned char key, const int x, const int y)
 	{
 		float msecs =  g_framesPerSecond / 1000;
 		glutTimerFunc(msecs, animateRobot, 0);
+		glutTimerFunc(msecs, animateLegs, 0);
 	}
 	else if (key == ',')
 	{
