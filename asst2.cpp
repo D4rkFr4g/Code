@@ -856,8 +856,8 @@ static void animateLegs(int value)
 			endLeftLeg = RigTForm(Quat::makeXRotation(-degreesPerStep) * startLeftLeg.getRotation());
 			endRightLeg = RigTForm(Quat::makeXRotation(degreesPerStep) * startRightLeg.getRotation());
 
-			cout << "endLeftLeg Angle = " << endLeftLeg.getRotation().getAngle() << "\n";
-			cout << "endRightLeg Angle = " << endRightLeg.getRotation().getAngle() << "\n";
+			//cout << "endLeftLeg Angle = " << endLeftLeg.getRotation().getAngle() << "\n";
+			//cout << "endRightLeg Angle = " << endRightLeg.getRotation().getAngle() << "\n";
 
 			totalTime = stepsPerSecond * 0.5 * 1000;
 		}
@@ -875,9 +875,9 @@ static void animateLegs(int value)
 				endLeftLeg = RigTForm(Quat::makeXRotation(degreesPerStep * 2) * startLeftLeg.getRotation());
 				endRightLeg = RigTForm(Quat::makeXRotation(-degreesPerStep * 2) * startRightLeg.getRotation());
 			}
-			cout << "Degrees = " << degreesPerStep << "\n";
-			cout << "endLeftLeg Angle = " << endLeftLeg.getRotation().getAngle() << "\n";
-			cout << "endRightLeg Angle = " << endRightLeg.getRotation().getAngle() << "\n";
+			//cout << "Degrees = " << degreesPerStep << "\n";
+			//cout << "endLeftLeg Angle = " << endLeftLeg.getRotation().getAngle() << "\n";
+			//cout << "endRightLeg Angle = " << endRightLeg.getRotation().getAngle() << "\n";
 
 			totalTime = stepsPerSecond * 1 * 1000;
 		}
@@ -961,7 +961,7 @@ static void animateLegs(int value)
 	else
 	{
 		isAnimating =  true;
-		cout << "Stopwatch Legs = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
+		//cout << "Stopwatch Legs = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
 		stopwatch = 0;
 		animationPart = 0;
 		elapsedTime = totalTime;
@@ -977,19 +977,27 @@ static void animateCamera(int value)
 	const static float stepsPerSecond = 10.0/2.0; // Time Allowed / Steps taken
 	static float totalTime = stepsPerSecond * 1 * 1000;
 	static float elapsedTime = 0;
+	static float x = 0;
+	static float z = 0;
+	static float radius = g_eyeRbt.getTranslation()[2];
+	static float helperDegrees = 0;
+	static float offsetDegrees = 90;
 	
 	static RigTForm start = g_eyeRbt;
-	static RigTForm end = RigTForm(g_eyeRbt.getTranslation(), Quat::makeYRotation(180) * start.getRotation());
+	static RigTForm end = RigTForm(g_eyeRbt.getTranslation(), Quat::makeYRotation(-180) * start.getRotation());
+	//static RigTForm end = RigTForm();
 	
+
 	//Handles which part of animation is currently running
 	if (elapsedTime >= totalTime)
 	{
-		g_eyeRbt = end;
+		g_eyeRbt.setRotation(end.getRotation());
 
 		if (animationPart == 0)
 		{
-			start = g_eyeRbt;
-			end = RigTForm(g_eyeRbt.getTranslation(), Quat::makeYRotation(180) * start.getRotation());
+			start = end;
+			end = RigTForm(g_eyeRbt.getTranslation(), Quat::makeYRotation(-180) * start.getRotation());
+			helperDegrees = 180;
 		}
 		else
 		{
@@ -1006,6 +1014,14 @@ static void animateCamera(int value)
 	if (isAnimating)
 	{
 		float alpha = elapsedTime / totalTime;
+
+		//Handle Translation Interpolation
+		Cvec3 startVec = g_eyeRbt.getTranslation();
+		float degree = ((alpha * 180) + helperDegrees) + offsetDegrees;
+		float toRadians = CS175_PI / 180.0;
+		x = cos(degree * toRadians) * radius;
+		z = sin(degree * toRadians) * radius;
+		g_eyeRbt.setTranslation(Cvec3(x,g_eyeRbt.getTranslation()[1],z));
 
 		// Initial rotations
 		Quat startQ = start.getRotation();
@@ -1045,8 +1061,11 @@ static void animateCamera(int value)
 	else
 	{
 		isAnimating =  true;
-		cout << "Stopwatch Legs = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
+		//cout << "Stopwatch Camera = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
 		stopwatch = 0;
+		animationPart = 0;
+		helperDegrees = 0;
+		initCamera();
 	}
 }
 /*-----------------------------------------------*/
