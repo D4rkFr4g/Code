@@ -383,7 +383,7 @@ static Matrix4 lookAt(Cvec3f eyePosition, Cvec3f lookAtPosition, Cvec3f upVector
 	return Matrix4(m, true);
 }
 /*-----------------------------------------------*/
-static float lookAt(Cvec3f eyePosition, Cvec3f upPosition)
+static float lookAt(Cvec3 eyePosition, Cvec3 upPosition)
 {
 	float temp = dot(eyePosition, upPosition);
 	float eyeNorm = norm(eyePosition);
@@ -397,12 +397,19 @@ static float lookAt(Cvec3f eyePosition, Cvec3f upPosition)
 
 	return -(90 - temp);
 }
+static void lookAtOrigin()
+{
+	// Set angle to look at the origin
+	Cvec3 eye = g_eyeRbt.getTranslation();
+	Cvec3 up = Cvec3(0,1,0);
+	g_eyeRbt.setRotation(Quat().makeXRotation(lookAt(eye,up)));
+}
 /*-----------------------------------------------*/
 static void initCamera()
 {
-	Cvec3f eye = Cvec3f(0.0, 3.0, 10.0);
-	Cvec3f at = Cvec3f(0.0, 0.0, 0.0);
-	Cvec3f up = Cvec3f(0.0,1.0,0.0);
+	Cvec3 eye = Cvec3(0.0, 3.0, 10.0);
+	Cvec3 at = Cvec3(0.0, 0.0, 0.0);
+	Cvec3 up = Cvec3(0.0,1.0,0.0);
 	//g_skyRbt = lookAt(eye, at, up); // Default camera
 	g_skyRbt.setRotation(Quat().makeXRotation(lookAt(eye,up)));
 	g_eyeRbt = g_skyRbt;
@@ -977,16 +984,26 @@ static void animateCamera(int value)
 	const static float stepsPerSecond = 10.0/2.0; // Time Allowed / Steps taken
 	static float totalTime = stepsPerSecond * 1 * 1000;
 	static float elapsedTime = 0;
-	static float x = 0;
-	static float z = 0;
+	static float x;
+	static float z;
 	static float radius = g_eyeRbt.getTranslation()[2];
 	static float helperDegrees = 0;
 	static float offsetDegrees = 90;
+	static bool isFirstEntry = true;
 	
 	static RigTForm start = g_eyeRbt;
 	static RigTForm end = RigTForm(g_eyeRbt.getTranslation(), Quat::makeYRotation(-180) * start.getRotation());
 	//static RigTForm end = RigTForm();
-	
+
+	// Used to reset variables every time animation is run
+	if (isFirstEntry)
+	{
+		start = g_eyeRbt;
+		radius = g_eyeRbt.getTranslation()[2];
+		end = RigTF.orm(g_eyeRbt.getTranslation(), Quat::makeYRotation(-180) * start.getRotation());
+		isFirstEntry = false;
+		//lookAtOrigin();
+	}
 
 	//Handles which part of animation is currently running
 	if (elapsedTime >= totalTime)
@@ -1065,7 +1082,9 @@ static void animateCamera(int value)
 		stopwatch = 0;
 		animationPart = 0;
 		helperDegrees = 0;
-		initCamera();
+		isFirstEntry = true;
+
+		glutPostRedisplay();
 	}
 }
 /*-----------------------------------------------*/
@@ -1201,6 +1220,8 @@ static void keyboard(const unsigned char key, const int x, const int y)
 			if (cameraTrans[2] >= max)
 				g_eyeRbt.setTranslation(Cvec3(cameraTrans[0], cameraTrans[1], max));
 
+			lookAtOrigin();
+
 			//cout << "( " << g_eyeRbt.getTranslation()[0] << ", " << g_eyeRbt.getTranslation()[1] << ", " << g_eyeRbt.getTranslation()[2] << "\n";
 
 		}
@@ -1213,6 +1234,8 @@ static void keyboard(const unsigned char key, const int x, const int y)
 	
 			if (cameraTrans[2] <= min)
 				g_eyeRbt.setTranslation(Cvec3(cameraTrans[0], cameraTrans[1], min));
+
+			lookAtOrigin();
 
 			//cout << "( " << g_eyeRbt.getTranslation()[0] << ", " << g_eyeRbt.getTranslation()[1] << ", " << g_eyeRbt.getTranslation()[2] << "\n";
 		}
