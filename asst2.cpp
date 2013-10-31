@@ -1000,7 +1000,7 @@ static void animateCamera(int value)
 	{
 		start = g_eyeRbt;
 		radius = g_eyeRbt.getTranslation()[2];
-		end = RigTF.orm(g_eyeRbt.getTranslation(), Quat::makeYRotation(-180) * start.getRotation());
+		end = RigTForm(g_eyeRbt.getTranslation(), Quat::makeYRotation(-180) * start.getRotation());
 		isFirstEntry = false;
 		//lookAtOrigin();
 	}
