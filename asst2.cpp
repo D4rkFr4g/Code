@@ -499,7 +499,7 @@ void initRobot()
 	leftLeg->name = "leftLeg";
 
 	// Right Hip Joint
-	rigTemp = RigTForm(Cvec3(0.25,-1.0,0.0),Quat().makeXRotation(-25));
+	rigTemp = RigTForm(Cvec3(0.25,-1.0,0.0));
 	scaleTemp = Matrix4::makeScale(Cvec3(0.1,0.1,0.1));
 	RigidBody *rightHipJoint = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,1));
 	rightHipJoint->name = "rightHipJoint";
@@ -718,8 +718,6 @@ static void animateRobot(int value)
 	static float totalTime = stepsPerSecond * 5 * 1000;
 	static float elapsedTime = 0;
 	
-	
-
 	//Handles which part of animation is currently running
 	if (elapsedTime > totalTime)
 	{
@@ -731,16 +729,16 @@ static void animateRobot(int value)
 		//Rotate
 		if (animationPart == 1 || animationPart == 3 || animationPart == 5 || animationPart == 7)
 		{
-			
-			
 			start = end;
 			end = RigTForm(start.getTranslation(), Quat::makeYRotation(90) * start.getRotation());
 			
+			/*
 			cout <<"===========================\n";
 			cout << "Start angle = " << start.getRotation().getAngle() << "\n";
 			//cout << "Delta angle = " << Quat().makeYRotation(90).getAngle() << "\n";
 			cout << "End angle = " << (Quat().makeYRotation(90) * start.getRotation()).getAngle() << "\n";
 			cout <<"===========================\n\n";
+			*/
 
 			//end = RigTForm(start.getTranslation(), Quat().makeYRotation(90) * start.getRotation()); 
 			//end = RigTForm(Quat().makeYRotation(90)) * start;
@@ -786,44 +784,34 @@ static void animateRobot(int value)
 
 	if (isAnimating)
 	{
-
 		float alpha = elapsedTime / totalTime;
-
+		
 		//Handle Translation Interpolation
 		Cvec3 startVec = start.getTranslation();
 		Cvec3 temp = end.getTranslation() - startVec; 
 		g_rigidBodies[0].rtf.setTranslation(startVec + (temp * alpha));
 
+		Quat startQ = start.getRotation(); // Initial rotation
+		Quat endQ = end.getRotation();	// Final rotation
+
 		//Handle Rotational Interpolation
 		if (g_interpolationType == I_POWER) // Quaternion Powering
-		{
-			Quat startQ = start.getRotation(); // Initial rotation
-			Quat endQ = end.getRotation();	// Final rotatoin
-			
+		{	
 			if (endQ - startQ != Quat(0,0,0,0)) // Check for actual rotation
 			{
-				//cout << "Endq = ";
-				//endQ.print();
-				Quat currentQ = Quat::pow(endQ * inv(startQ), alpha); // Calculate this frames rotation Quat
-				g_rigidBodies[0].rtf.setRotation(currentQ * startQ); // Apply rotation with respect to starting Position //Double rotates
-				
-				
-/*				
-				cout << "currentQ";
-				currentQ.print();
-				//Debug stuff
-				cout << "currentQ angle = " << currentQ.getAngle() << "\n";
-				cout << "startQ angle = " << startQ.getAngle() << "\n";
-				cout << "currentQ * startQ angle = " << (currentQ * startQ).getAngle() << "\n\n";
-				*/
+				Quat currentQ = Quat::pow(endQ, alpha);
+				//Quat currentQ = Quat::pow(endQ * inv(startQ), alpha); // Calculate this frames rotation Quat //Slerping???
+				g_rigidBodies[0].rtf.setRotation(startQ * currentQ); // Apply rotation with respect to starting Position //Double rotates
 			}
 		}
-		else if (g_interpolationType == I_SLERP)
+		else if (g_interpolationType == I_SLERP) //Spherical linear interpolation
 		{
-
+			g_rigidBodies[0].rtf.setRotation(Quat::slerp(startQ, endQ, alpha) * startQ);
 		}
 		else if (g_interpolationType == I_LERP)
 		{
+			Quat q = normalize(Quat::lerp(startQ, endQ, alpha)); //Normalize lerped quaternion
+			g_rigidBodies[0].rtf.setRotation(q);
 		}
 
 		elapsedTime += msecsPerFrame;
@@ -841,6 +829,96 @@ static void animateRobot(int value)
 		stopwatch = 0;
 	}
 }
+/*-----------------------------------------------*/
+static void animateLegs(int value)
+{
+	static float stopwatch = 0;
+	float msecsPerFrame = 1/(g_framesPerSecond / 1000);
+	static int animationPart = 0;
+	static bool isAnimating = true;
+	static float stepsPerSecond = 20.0/34.0; // Time Allowed / Steps taken
+	RigTForm *leftLeg = &g_rigidBodies[0].children[0]->children[2]->children[2]->rtf;
+	RigTForm *rightLeg = &g_rigidBodies[0].children[0]->children[2]->children[3]->rtf;
+
+	static RigTForm startLeftLeg = *leftLeg;
+	static RigTForm endLeftLeg;
+	static RigTForm startRightLeg = *rightLeg;
+	static RigTForm endRightLeg;
+
+	static float totalTime = stepsPerSecond * 5 * 1000;
+	static float elapsedTime = 0;
+	
+	
+
+	//Handles which part of animation is currently running
+	if (elapsedTime > totalTime)
+	{
+		if (animationPart < 34)
+		{
+			startLeftLeg = endLeftLeg;
+			startRightLeg = endRightLeg;
+			if (animationPart %2 > 0)
+			{
+				//endLeftLeg = ;
+				//endRightLeg = ;
+			}
+			else
+			{
+				//endLeftLeg = ;
+				//endRightLeg = ;
+			}
+		}
+
+		leftLeg = &endLeftLeg;
+		rightLeg = &endRightLeg;
+
+		animationPart++;
+	}
+/*
+	if (isAnimating)
+	{
+		float alpha = elapsedTime / totalTime;
+
+		Quat startQ = start.getRotation(); // Initial rotation
+		Quat endQ = end.getRotation();	// Final rotation
+
+		//Handle Rotational Interpolation
+		if (g_interpolationType == I_POWER) // Quaternion Powering
+		{	
+			if (endQ - startQ != Quat(0,0,0,0)) // Check for actual rotation
+			{
+				Quat currentQ = Quat::pow(endQ, alpha);
+				//Quat currentQ = Quat::pow(endQ * inv(startQ), alpha); // Calculate this frames rotation Quat //Slerping???
+				g_rigidBodies[0].rtf.setRotation(startQ * currentQ); // Apply rotation with respect to starting Position //Double rotates
+			}
+		}
+		else if (g_interpolationType == I_SLERP) //Spherical linear interpolation
+		{
+			g_rigidBodies[0].rtf.setRotation(Quat::slerp(startQ, endQ, alpha) * startQ);
+		}
+		else if (g_interpolationType == I_LERP)
+		{
+			Quat q = normalize(Quat::lerp(startQ, endQ, alpha)); //Normalize lerped quaternion
+			g_rigidBodies[0].rtf.setRotation(q);
+		}
+
+		elapsedTime += msecsPerFrame;
+		glutPostRedisplay();
+	
+		//Time total animation
+		stopwatch += msecsPerFrame;
+
+		glutTimerFunc(msecsPerFrame, animateRobot, 0);
+	}
+	else
+	{
+		isAnimating =  true;
+		//cout << "Stopwatch = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
+		stopwatch = 0;
+	}
+	*/
+}
+
 /*-----------------------------------------------*/
 static void mouse(const int button, const int state, const int x, const int y) {
   g_mouseClickX = x;

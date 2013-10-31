@@ -123,34 +123,27 @@ public:
     return r;
   }
 
-	static Quat pow(const Quat& q_, float a)
+	static Quat pow(const Quat& q, float a)
 	{
-		Quat q;
-		Cvec3 axis;
-
-		// If w is negative Calculate based on inverse
-/*		if (q_[0] < 0)
-			q = negate(q_);
-		else
-*/			q = q_;
-  
-		//q = normalize(q_);
-
-		float theta = 0;
 		Cvec3 c = Cvec3(q[1],q[2],q[3]);
-		axis = normalize(c); //Adjusted normalize function so a zero vector is normalized as zero vector
-		float cNorm = norm(c);
-		//theta = cos(atan2(norm(c),q[0])); //Not sure if cos() is necessary
-		theta = 2 * atan2(norm(c),q[0]);
-		//cout << "theta = " << theta << "\n";
-		
-		Quat currentQ = Quat(cos((a * theta) / 2.0), axis * sin((a * theta) / 2.0));
-		
-		//Verify angle being sent
-		//cout << "alpha = " << a << "\n";
-		//cout << "currentAngle = " << currentQ.getAngle() << "\n";
-		
-		return currentQ;
+		Cvec3 axis = normalize(c); //Adjusted normalize function so a zero vector is normalized as zero vector
+		float theta = 2 * atan2(norm(c),q[0]);		
+		return Quat(cos((a * theta) / 2.0), axis * sin((a * theta) / 2.0));
+	}
+
+	static Quat slerp(const Quat& q0, const Quat& q1, float a)
+	{
+		Quat q = q1 * inv(q0);
+
+		if (q[0] < 0)
+			q = inv(q);
+
+		return pow(q, a);
+	}
+
+	static Quat lerp(const Quat& q0, const Quat& q1, double a)
+	{
+		return (q0 * (1.0 - a)) + (q1 * a);
 	}
 
 	static Quat negate(const Quat& q)
