@@ -845,7 +845,7 @@ static void animateLegs(int value)
 	static RigTForm startRightLeg = *rightLeg;
 	static RigTForm endRightLeg;
 
-	static float totalTime = stepsPerSecond * 5 * 1000;
+	static float totalTime = stepsPerSecond * 1 * 1000;
 	static float elapsedTime = 0;
 	
 	
@@ -859,14 +859,26 @@ static void animateLegs(int value)
 			startRightLeg = endRightLeg;
 			if (animationPart %2 > 0)
 			{
-				//endLeftLeg = ;
-				//endRightLeg = ;
+				endLeftLeg = startLeftLeg.getRotation() * Quat::makeZRotation(30);
+				endRightLeg = startRightLeg.getRotation() * Quat::makeZRotation(-30);
 			}
 			else
 			{
-				//endLeftLeg = ;
-				//endRightLeg = ;
+				endLeftLeg = startLeftLeg.getRotation() * Quat::makeZRotation(-30);
+				endRightLeg = startRightLeg.getRotation() * Quat::makeZRotation(30);
 			}
+		}
+		else
+		{
+			glutPostRedisplay();
+
+			isAnimating = false;
+
+			//Reset values to default
+			animationPart = 0;
+			startLeftLeg = leftLeg;
+			startRightLeg = rightLeg;
+			totalTime = stepsPerSecond * 1 * 1000;
 		}
 
 		leftLeg = &endLeftLeg;
@@ -874,26 +886,37 @@ static void animateLegs(int value)
 
 		animationPart++;
 	}
-/*
+
 	if (isAnimating)
 	{
 		float alpha = elapsedTime / totalTime;
 
-		Quat startQ = start.getRotation(); // Initial rotation
-		Quat endQ = end.getRotation();	// Final rotation
+		// Initial rotations
+		Quat startLeftLegQ = leftLeg->getRotation();
+		Quat startRightLegQ = rightLeg->getRotation();
 
-		//Handle Rotational Interpolation
+		// Final rotations
+		Quat endLeftLegQ = endLeftLeg.getRotation();
+		Quat endRightLegQ = endRightLeg.getRotation();
+
+		// Handle Rotational Interpolation
 		if (g_interpolationType == I_POWER) // Quaternion Powering
 		{	
-			if (endQ - startQ != Quat(0,0,0,0)) // Check for actual rotation
+			if (endLeftLegQ - startLeftLegQ != Quat(0,0,0,0)) // Check for actual rotation
 			{
-				Quat currentQ = Quat::pow(endQ, alpha);
-				//Quat currentQ = Quat::pow(endQ * inv(startQ), alpha); // Calculate this frames rotation Quat //Slerping???
-				g_rigidBodies[0].rtf.setRotation(startQ * currentQ); // Apply rotation with respect to starting Position //Double rotates
+				Quat currentLeftLegQ = Quat::pow(endLeftLegQ, alpha);
+				leftLeg->setRotation(startLeftLegQ * currentLeftLegQ); // Apply rotation with respect to starting Position //Double rotates
+			}
+
+			if (endRightLegQ - startRightLegQ != Quat(0,0,0,0)) // Check for actual rotation
+			{
+				Quat currentRightLegQ = Quat::pow(endRightLegQ, alpha);
+				rightLeg->setRotation(startRightLegQ * currentRightLegQ); // Apply rotation with respect to starting Position //Double rotates
 			}
 		}
 		else if (g_interpolationType == I_SLERP) //Spherical linear interpolation
 		{
+			//TODO Left / Right
 			g_rigidBodies[0].rtf.setRotation(Quat::slerp(startQ, endQ, alpha) * startQ);
 		}
 		else if (g_interpolationType == I_LERP)
